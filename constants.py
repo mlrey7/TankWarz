@@ -3,7 +3,7 @@ from enum import IntEnum
 
 class Game(IntEnum):
     WIDTH = 1280
-    HEIGHT = 720
+    HEIGHT = 700
 class Direction(IntEnum):
     FORWARD = 1
     BACKWARD = -1
