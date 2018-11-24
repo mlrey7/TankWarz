@@ -20,12 +20,12 @@ from global_vars import space
 from global_vars import tanks
 from global_vars import window
 from global_vars import bg_batch
-from global_vars import tank_batch
-from global_vars import barrel_batch
+from global_vars import fg_batch
 from global_vars import keys
 from global_vars import projectiles
 from global_vars import projectile_count
-
+from global_vars import tank_group
+from global_vars import barrel_group
 class Tank:
     SCALE = 0.65
     HEIGHT = 78 * math.sqrt(SCALE)
@@ -36,8 +36,6 @@ class Tank:
     
     SPEED = 100
     def __init__(self, pos = (0, 0), color=Color.RED, idn=0):
-        self.barrel_batch = barrel_batch
-        self.tank_batch = tank_batch
         self.hp = 100
         self.ammo = 10
         self.isReloading = False
@@ -62,13 +60,13 @@ class Tank:
         self.img = pyglet.image.load("res/PNG/tanks/tankSprites/%s/1.png" % color.value)
         self.img.anchor_x = self.img.width // 2 
         self.img.anchor_y = self.img.height // 2 
-        self.sprite = pyglet.sprite.Sprite(self.img, x = pos[0], y = pos[1], batch = tank_batch)
+        self.sprite = pyglet.sprite.Sprite(self.img, x = pos[0], y = pos[1], batch = fg_batch, group=tank_group)
         self.sprite.scale = Tank.SCALE
 
         barrelImg = pyglet.image.load("res/PNG/tanks/barrel%s_outline.png" % color.value)
         barrelImg.anchor_x = barrelImg.width // 2 
         barrelImg.anchor_y = (barrelImg.height // 2) - 15
-        self.barrelSprite = pyglet.sprite.Sprite(barrelImg, x = pos[0], y = pos[1], batch = barrel_batch)
+        self.barrelSprite = pyglet.sprite.Sprite(barrelImg, x = pos[0], y = pos[1], batch = fg_batch, group=barrel_group)
         self.barrelSprite.scale = Tank.SCALE 
         self.poly = pymunk.Poly.create_box(None, size=(Tank.HEIGHT,Tank.WIDTH), radius=0.1)
         self.poly.collision_type = Coll_Type.TANK
@@ -94,10 +92,6 @@ class Tank:
         self.barrelBody.position = self.body.position
         self.barrelSprite.position = self.barrelBody.position
         self.barrelSprite.rotation = degrees(self.barrelBody.angle)
-        #self.barrelBody.angular_velocity = 0
-        #self.body.velocity = (0,0)
-        #self.body.angular_velocity = 0
-        
     def fire(self):
         posx = self.barrelBody.position[0] + (sin(self.barrelBody.angle) * 50)
         posy = self.barrelBody.position[1] + (cos(self.barrelBody.angle) * 50)

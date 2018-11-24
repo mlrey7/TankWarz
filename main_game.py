@@ -14,8 +14,7 @@ from global_vars import space
 from global_vars import tanks
 from global_vars import window
 from global_vars import bg_batch
-from global_vars import tank_batch
-from global_vars import barrel_batch
+from global_vars import fg_batch
 from global_vars import keys
 from global_vars import projectiles
 from tank import Tank
@@ -66,8 +65,7 @@ def reroll_map():
 def on_draw():
     window.clear()
     bg_batch.draw()
-    tank_batch.draw()
-    barrel_batch.draw()
+    fg_batch.draw()
     if keys[key.Q]:
         tank.rotateTurret(Direction.LEFT)
     elif keys[key.E]:
@@ -94,9 +92,9 @@ def update(dt):
     dtt = 1/60
     space.step(dtt)
     for tank in tanks.values():
-        tank.update(dtt)
+        tank.update(dt)
     for p in projectiles.values():
-        p.update(dtt)
+        p.update(dt)
  
 pyglet.clock.schedule_interval(update, 1.0/60)
 pyglet.app.run()

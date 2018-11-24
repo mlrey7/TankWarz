@@ -4,8 +4,9 @@ from math import degrees
 from constants import Color
 from constants import Coll_Type
 from constants import Direction
-from global_vars import barrel_batch
+from global_vars import fg_batch
 from global_vars import space
+from global_vars import barrel_group
 class Projectile:
     SCALE = 0.65
     DAMAGE = 10
@@ -17,7 +18,7 @@ class Projectile:
         img = pyglet.image.load("res/PNG/Bullets/bullet%s_outline.png" % color.value)
         img.anchor_x = img.width // 2 
         img.anchor_y = img.height // 2 
-        self.sprite = pyglet.sprite.Sprite(img, x = pos[0], y = pos[1], batch = barrel_batch)
+        self.sprite = pyglet.sprite.Sprite(img, x = pos[0], y = pos[1], batch = fg_batch, group=barrel_group)
         self.sprite.scale = Projectile.SCALE
         self.poly = pymunk.Poly.create_box(None, size=(Projectile.HEIGHT,Projectile.WIDTH))
         self.poly.collision_type = Coll_Type.PROJECTILE
