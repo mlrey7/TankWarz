@@ -1,7 +1,5 @@
 import pyglet
 import pymunk
-import itertools
-from pymunk.pyglet_util import DrawOptions
 from pyglet.window import key
 from pyglet import clock
 import math
@@ -19,6 +17,10 @@ space.gravity = (0, 0)
 window = pyglet.window.Window(width = 1280, height = 720)
 keys = key.KeyStateHandler()
 window.push_handlers(keys)
+bg_group = pyglet.graphics.OrderedGroup(0)
+tracks_group = pyglet.graphics.OrderedGroup(1)
+tank_group = pyglet.graphics.OrderedGroup(2)
+barrel_group = pyglet.graphics.OrderedGroup(3)
 bg_batch = pyglet.graphics.Batch()
 tank_batch = pyglet.graphics.Batch()
 barrel_batch = pyglet.graphics.Batch()
@@ -249,7 +251,7 @@ class Tank:
         self.barrelMoment = pymunk.moment_for_poly(10, self.barrelPoly.get_vertices(), offset=(0,-10))
         self.barrelBody = pymunk.Body(1, self.barrelMoment, pymunk.Body.DYNAMIC)
         self.barrelPoly.body = self.barrelBody
-        self.barrelBody.position = pos[0], pos[1]
+        self.barrelBody.position = pos
 
         space.add(self.poly, self.body)
         space.add(self.barrelPoly, self.barrelBody)
@@ -257,7 +259,7 @@ class Tank:
     def update(self, dt):
         self.sprite.position = self.body.position
         self.sprite.rotation = degrees(self.body.angle)
-        self.barrelBody.position = self.body.position[0], self.body.position[1]
+        self.barrelBody.position = self.body.position
         self.barrelSprite.position = self.barrelBody.position
         self.barrelSprite.rotation = degrees(self.barrelBody.angle)
         #self.barrelBody.angular_velocity = 0
