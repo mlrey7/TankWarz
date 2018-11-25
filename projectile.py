@@ -27,7 +27,7 @@ class Projectile:
             img = pyglet.image.load("res/PNG/Bullets/bullet%s_outline.png" % color.value)
         elif self.type == Projectile.Ammo_Type.AP:
             img = pyglet.image.load("res/PNG/Bullets/bullet%sSilver_outline.png" % color.value)
-            self.damage = 30
+            self.damage = 100
         img.anchor_x = img.width // 2 
         img.anchor_y = img.height // 2 
         self.sprite = pyglet.sprite.Sprite(img, x = pos[0], y = pos[1], batch = fg_batch, group=barrel_group)

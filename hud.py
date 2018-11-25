@@ -69,6 +69,8 @@ class Hud:
 
         self.bullet2_text.color = (255,255,255,100)
         self.bullet2_ammo.color = (255,255,255,100)
+
+        self.minimap_border = Rectangle(0, 0, 260, 260, (40,40,40,200))
     def update(self, ammo1, ammo2):
         self.bullet1_ammo = pyglet.text.HTMLLabel(
         '<font face="Arial" size="13" color="white"><b>x%d</b></font>' % (ammo1),
@@ -86,3 +88,4 @@ class Hud:
         self.bullet2_overlay.draw()
         self.bullet2_text.draw()
         self.bullet2_ammo.draw()
+        self.minimap_border.draw()

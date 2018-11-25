@@ -26,11 +26,14 @@ from constants import Coll_Type
 from constants import Direction
 from game_map import Game_Map
 from hud import Hud
+from minimap import Minimap
+
 tank = Tank(pos = (300,300), color = Color.RED)
 tanks[tank.idn] = tank
 tank2 = Tank(pos = (500,500), color = Color.BLACK, idn=1)
 tanks[tank2.idn] = tank2
 projectile_tank_handler = space.add_collision_handler(Coll_Type.TANK, Coll_Type.PROJECTILE)
+switch_sound = pyglet.media.load("res/sounds/switch28.wav", streaming=False)
 bg_sound = pyglet.media.load("res/music/bgmusic2.wav", streaming=True)
 bg_loop = pyglet.media.SourceGroup(bg_sound.audio_format, None)
 bg_loop.loop = True
@@ -53,7 +56,8 @@ def begin(arbiter, space, data):
             tank.hp -= projectile.damage
             projectile.destroy()
             projectiles.pop(projectile.idn)
-            print(tank.hp)
+            if tank.hp <= 0 and tank.alive:
+                tank.destroy()
     return True
 def pre_solve(arbiter, space, data):
     return True
@@ -66,12 +70,17 @@ projectile_tank_handler.begin = begin
 projectile_tank_handler.pre_solve = pre_solve
 projectile_tank_handler.post_solve = post_solve
 projectile_tank_handler.separate = separate
-map1 = Game_Map.generate_map(26,15)
+map1 = Game_Map.generate_map(30,30)
+minimap = Minimap(map1)
 def reroll_map():
     global map1
+    global minimap
     for x in range(len(map1.sprite_matrix)):
         map1.sprite_matrix[x].delete()
-    map1 = Game_Map.generate_map(26,15)
+    map1 = Game_Map.generate_map(30,30)
+    for x in range(len(minimap.sprite_matrix)):
+        minimap.sprite_matrix[x].delete()
+    minimap = Minimap(map1)
 hud = Hud()
 @window.event
 def on_draw():
@@ -84,6 +93,7 @@ def on_draw():
     
     if keys[key._1]:
         if tank.ammo_mode == Projectile.Ammo_Type.AP:
+            switch_sound.play()
             tank.ammo_mode = Projectile.Ammo_Type.REGULAR
 
             hud.bullet1_overlay.color = (40,40,40,200)
@@ -97,6 +107,7 @@ def on_draw():
             hud.bullet2_ammo.color = (255,255,255,100)
     elif keys[key._2]:
         if tank.ammo_mode == Projectile.Ammo_Type.REGULAR:
+            switch_sound.play()
             tank.ammo_mode = Projectile.Ammo_Type.AP
             hud.bullet1_overlay.color = (40,40,40,100)
             hud.bullet1_sprite.opacity = 100
@@ -129,6 +140,7 @@ def on_draw():
         tank.fire()
         hud.update(tank.ammo1, tank.ammo2)
     if keys[key.SPACE]:
+        pyglet.image.get_buffer_manager().get_color_buffer().save('screenshot.png')
         reroll_map()
 def update(dt):
     dtt = 1/60

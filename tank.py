@@ -27,8 +27,9 @@ from global_vars import projectile_count
 from global_vars import tank_group
 from global_vars import barrel_group
 from global_vars import smoke_group
+from global_vars import explosion_group
 from global_vars import effects
-from global_vars import smoke_count
+from global_vars import effect_count
 from helper import Rectangle
 
 class Tank:
@@ -38,9 +39,10 @@ class Tank:
     BARREL_HEIGHT = 58
     BARREL_WIDTH = 24
     BARREL_SPEED = 1
-    explosion_sound = pyglet.media.load("res/sounds/tank_fire.wav", streaming=False)
+    firing_sound = pyglet.media.load("res/sounds/tank_fire.wav", streaming=False)
     moving_sound = pyglet.media.load("res/sounds/tank_moving.wav", streaming=False)
     reloading_sound = pyglet.media.load("res/sounds/tank_reload.wav", streaming=False)
+    explosion_sound = pyglet.media.load("res/sounds/tank_explosion.wav", streaming=False)
     moving_sound_loop = pyglet.media.SourceGroup(moving_sound.audio_format, None)
     moving_sound_loop.loop = True
     moving_sound_loop.queue(moving_sound)
@@ -61,13 +63,14 @@ class Tank:
             self.hp_bar.ly = position[1] + 50
             self.border.lx = self.hp_bar.lx - 3
             self.border.ly = self.hp_bar.ly - 3
-            self.hp_bar.width = 54 - (.54 * (100 - hp))
+            self.hp_bar.width = max(54 - (.54 * (100 - hp)), 0)
         def draw(self):
             self.border.draw()
             self.full_bar.draw()
             self.hp_bar.draw()
 
     def __init__(self, pos = (0, 0), color=Color.RED, idn=0):
+        self.alive = True
         self.hp = 100
         self.ammo1 = 40
         self.ammo2 = 5
@@ -159,10 +162,10 @@ class Tank:
         smoke_sprite.scale = 0.6
         smoke_sprite.rotation = self.barrelSprite.rotation
         
-        Tank.explosion_sound.play()
-        global smoke_count
-        smoke_count += 1
-        smoke_sprite.idn = smoke_count
+        Tank.firing_sound.play()
+        global effect_count
+        effect_count += 1
+        smoke_sprite.idn = effect_count
         effects[smoke_sprite.idn] = smoke_sprite
         def smoke(self):
             effects[smoke_sprite.idn].delete()
@@ -201,3 +204,20 @@ class Tank:
         self.barrelBody.angular_velocity = Tank.BARREL_SPEED*direction
     def stopRotateTurret(self):
         self.barrelBody.angular_velocity = 0
+    def destroy(self):
+        self.alive = False
+        global effect_count
+        effect_count += 1
+        explosion_images = []
+        for i in range(1,10):
+            image = pyglet.image.load("res/PNG/Smoke/explosion/explosion%s.png" % (i))
+            explosion_images.append(image)
+        for i in range(len(explosion_images)):
+            explosion_images[i].anchor_x = explosion_images[i].width // 2 
+            explosion_images[i].anchor_y = explosion_images[i].height // 2 
+        explosion_anim = pyglet.image.Animation.from_image_sequence(explosion_images, 0.16, False)
+        explosion_sprite = pyglet.sprite.Sprite(explosion_anim, x = self.sprite.position[0], y = self.sprite.position[1] + 10, batch = fg_batch, group=explosion_group)
+        explosion_sprite.scale = Tank.SCALE
+        Tank.explosion_sound.play()
+        effects[effect_count] = explosion_sprite
+        

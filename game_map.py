@@ -41,7 +41,6 @@ class Game_Map:
                     sprite = pyglet.sprite.Sprite(Game_Map.water_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
     def generate_map(width, height):
-
         rng1 = random.Random()
         rng2 = random.Random()
         gen1 = OpenSimplex(rng1.randint(0,100000))

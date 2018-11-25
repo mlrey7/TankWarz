@@ -23,7 +23,8 @@ tracks_group = pyglet.graphics.OrderedGroup(1)
 tank_group = pyglet.graphics.OrderedGroup(2)
 smoke_group = pyglet.graphics.OrderedGroup(3)
 barrel_group = pyglet.graphics.OrderedGroup(4)
-hud_group = pyglet.graphics.OrderedGroup(5)
+explosion_group = pyglet.graphics.OrderedGroup(5)
+hud_group = pyglet.graphics.OrderedGroup(100)
 bg_batch = pyglet.graphics.Batch()
 fg_batch = pyglet.graphics.Batch()
 tank_batch = pyglet.graphics.Batch()
@@ -31,6 +32,6 @@ barrel_batch = pyglet.graphics.Batch()
 projectiles = dict()
 tanks = dict()
 projectile_count = 0
-smoke_count = 0
+effect_count = 0
 effects = dict()
 
