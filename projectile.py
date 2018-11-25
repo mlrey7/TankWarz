@@ -22,12 +22,14 @@ class Projectile:
         self.src_idn = src_idn
         self.type = type
         self.damage = 10
+        self.velocity = 1000
         img = None
         if self.type == Projectile.Ammo_Type.REGULAR:
             img = pyglet.image.load("res/PNG/Bullets/bullet%s_outline.png" % color.value)
         elif self.type == Projectile.Ammo_Type.AP:
             img = pyglet.image.load("res/PNG/Bullets/bullet%sSilver_outline.png" % color.value)
             self.damage = 100
+            self.velocity = 1500
         img.anchor_x = img.width // 2 
         img.anchor_y = img.height // 2 
         self.sprite = pyglet.sprite.Sprite(img, x = pos[0], y = pos[1], batch = fg_batch, group=barrel_group)
@@ -35,8 +37,8 @@ class Projectile:
         self.poly = pymunk.Poly.create_box(None, size=(Projectile.HEIGHT,Projectile.WIDTH))
         self.poly.collision_type = Coll_Type.PROJECTILE
         self.poly.idn = self.idn
-        self.moment = pymunk.moment_for_poly(250, self.poly.get_vertices())
-        self.body = pymunk.Body(250, self.moment, pymunk.Body.DYNAMIC)
+        self.moment = pymunk.moment_for_poly(25, self.poly.get_vertices())
+        self.body = pymunk.Body(25, self.moment, pymunk.Body.DYNAMIC)
         self.poly.body = self.body
         self.body.position = pos
         space.add(self.poly, self.body)

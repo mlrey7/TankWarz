@@ -46,7 +46,6 @@ class Game_Map:
         gen1 = OpenSimplex(rng1.randint(0,100000))
         gen2 = OpenSimplex(rng2.randint(0,100000))
         def noise1(nx, ny):
-            a = gen1.noise2d(nx, ny) / 2 + 0.5
             return gen1.noise2d(nx, ny) / 2 + 0.5
         def noise2(nx, ny):
             return gen2.noise2d(nx, ny) / 2 + 0.5
@@ -55,7 +54,6 @@ class Game_Map:
             print((width, height))
             for x in range(width):
                 values.append([0] * height)
-                print(len(values[x]))
                 for y in range(height):
                     nx, ny = x/width - 0.5, y/height - 0.5
                     e = (1.00 * noise1( 1 * nx,  1 * ny)
@@ -64,8 +62,10 @@ class Game_Map:
                         + 0.13 * noise1( 8 * nx,  8 * ny)
                         + 0.06 * noise1(16 * nx, 16 * ny)
                         + 0.03 * noise1(32 * nx, 32 * ny))
-                    e = e ** 6.00
-                    e /= (1.00+0.50+0.25+0.13+0.06+0.03)
+                    e /= (1.0+0.50+0.25+0.13+0.06+0.03)
+                    e = e ** 4
+                    e *= 10
+                    print(e)
                     m = (1.00 * noise2( 1 * nx,  1 * ny)
                         + 0.75 * noise2( 2 * nx,  2 * ny)
                         + 0.33 * noise2( 4 * nx,  4 * ny)
@@ -76,17 +76,23 @@ class Game_Map:
                     values[x][y] = (e,m)
             return values
         def biome(e, m):     
-            if (e < 0.05):
+            if (e < 0.06):
                 return Tile.Type.WATER
             if (e < 0.12):
                 return Tile.Type.SAND
             if (e > 0.8):
-                return Tile.Type.GRASS
+                if (m < 0.2):
+                    return Tile.Type.DARKSAND
+                if (m < 0.5):
+                    return Tile.Type.GRASS
+                if (m < 0.6):
+                    return Tile.Type.SHRUB
+                return Tile.Type.TEMPERATE
             if (e > 0.6):
                 if (m < 0.33): 
-                    return Tile.Type.DARKSAND
+                    return Tile.Type.SAND
                 if (m < 0.66): 
-                    return Tile.Type.SHRUB
+                    return Tile.Type.GRASS
                 return Tile.Type.DIRT
             if (e > 0.3):
                 if (m < 0.16):
@@ -94,8 +100,8 @@ class Game_Map:
                 if (m < 0.50):
                     return Tile.Type.DIRT
                 if (m < 0.83):
-                    return Tile.Type.TEMPERATE
-                return Tile.Type.TEMPERATE
+                    return Tile.Type.GRASS
+                return Tile.Type.GRASS
             if (m < 0.16): 
                 return Tile.Type.SAND
             if (m < 0.33): 

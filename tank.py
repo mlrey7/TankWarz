@@ -143,23 +143,22 @@ class Tank:
         posy = self.barrelBody.position[1] + (cos(self.barrelBody.angle) * 50)
         global projectile_count
         p = Projectile(pos=(posx, posy), color=self.color, idn=projectile_count,src_idn=self.idn, type=self.ammo_mode)
-        p.body.velocity = (1000*sin(self.barrelBody.angle),1000*cos(self.barrelBody.angle))
+        p.body.velocity = (p.velocity*sin(self.barrelBody.angle),p.velocity*cos(self.barrelBody.angle))
         p.body.angle = self.barrelBody.angle
         projectiles[p.idn] = p
         projectile_count+=1
         smoke_img = None
-        if self.color == Color.BLACK or Color.BEIGE:
-            smoke_img = pyglet.image.load("res/PNG/Smoke/smokeGrey4.png")
-        elif self.color == Color.BLUE:
-            smoke_img = pyglet.image.load("res/PNG/Smoke/smokeBlue4.png")
-        elif self.color == Color.RED:
-            smoke_img = pyglet.image.load("res/PNG/Smoke/smokeOrange4.png")
-        else:
-            smoke_img = pyglet.image.load("res/PNG/Smoke/smokeWhite4.png")
-        smoke_img.anchor_x = smoke_img.width // 2
-        smoke_img.anchor_y = (smoke_img.height // 2) + 35
-        smoke_sprite = pyglet.sprite.Sprite(smoke_img, x = posx, y = posy, batch = fg_batch, group=smoke_group)
-        smoke_sprite.scale = 0.6
+
+        smoke_images = []
+        for i in range(1,8):
+            image = pyglet.image.load("res/PNG/Tanks/Fire/%d.png" % (i))
+            smoke_images.append(image)
+        for i in range(len(smoke_images)):
+            smoke_images[i].anchor_x = smoke_images[i].width // 2 + 5
+            smoke_images[i].anchor_y = (smoke_images[i].height // 2) - 80
+        smoke_anim = pyglet.image.Animation.from_image_sequence(smoke_images, 0.1, False)
+        smoke_sprite = pyglet.sprite.Sprite(smoke_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=smoke_group)
+        smoke_sprite.scale = Tank.SCALE
         smoke_sprite.rotation = self.barrelSprite.rotation
         
         Tank.firing_sound.play()
@@ -220,4 +219,17 @@ class Tank:
         explosion_sprite.scale = Tank.SCALE
         Tank.explosion_sound.play()
         effects[effect_count] = explosion_sprite
-        
+    def hit(self):
+        hit_images = []
+        for i in range(1,10):
+            image = pyglet.image.load("res/PNG/Tanks/hit/%d.png" % (i))
+            hit_images.append(image)
+        for i in range(len(hit_images)):
+            hit_images[i].anchor_x = hit_images[i].width // 2 
+            hit_images[i].anchor_y = hit_images[i].height // 2 + 5
+        hit_anim = pyglet.image.Animation.from_image_sequence(hit_images, 0.1, False)
+        hit_sprite = pyglet.sprite.Sprite(hit_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=explosion_group)
+        hit_sprite.scale = Tank.SCALE
+        hit_sprite.rotation = self.sprite.rotation
+        # effect_count += 1
+        # effects[effect_count] = hit_sprite

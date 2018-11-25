@@ -93,7 +93,11 @@ def begin(arbiter, space, data):
             projectile.destroy()
             projectiles.pop(projectile.idn)
             if tank.hp <= 0 and tank.alive:
+                tank.body.velocity = 0,0
+                tank.body.angular_velocity = 0
                 tank.destroy()
+            else:
+                tank.hit()
     return True
 def pre_solve(arbiter, space, data):
     return True
@@ -133,19 +137,6 @@ hud = Hud()
 camera = Camera()
 camera.init_gl(Game.WIDTH, Game.HEIGHT)
 window.on_resize = camera.on_resize
-
-window.on_mouse_scroll = camera.on_mouse_scroll
-
-def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
-        # Move camera
-        global camera
-        print("drasg")
-        camera.left   -= dx*camera.zoom_level
-        camera.right  -= dx*camera.zoom_level
-        camera.bottom -= dy*camera.zoom_level
-        camera.top    -= dy*camera.zoom_level
-
-window.on_mouse_drag = on_mouse_drag
 
 @window.event
 def on_draw():
@@ -202,9 +193,9 @@ def on_draw():
             hud.bullet2_sprite.opacity = 255
             hud.bullet2_text.color = (255,255,255,255)
             hud.bullet2_ammo.color = (255,255,255,255)
-    if keys[key.Q]:
+    if keys[key.J]:
         tank.rotateTurret(Direction.LEFT)
-    elif keys[key.E]:
+    elif keys[key.L]:
         tank.rotateTurret(Direction.RIGHT)
     else:
         tank.stopRotateTurret()
@@ -220,7 +211,7 @@ def on_draw():
         tank.rotate(Direction.LEFT)
     else:
         tank.stopRotating()
-    if keys[key.F] and not tank.isReloading:
+    if keys[key.K] and not tank.isReloading:
         tank.fire()
         hud.update(tank.ammo1, tank.ammo2)
     if keys[key.SPACE]:
