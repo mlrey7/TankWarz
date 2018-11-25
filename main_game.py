@@ -15,8 +15,8 @@ from global_vars import tanks
 from global_vars import window
 from global_vars import bg_batch
 from global_vars import fg_batch
-from global_vars import tank_batch
-from global_vars import barrel_batch
+from global_vars import hud_batch
+
 from global_vars import keys
 from global_vars import projectiles
 from tank import Tank
@@ -24,15 +24,54 @@ from projectile import Projectile
 from constants import Color
 from constants import Coll_Type
 from constants import Direction
+from constants import Game
 from game_map import Game_Map
 from hud import Hud
 from minimap import Minimap
+from camera import Camera
+import global_vars
 
-tank = Tank(pos = (300,300), color = Color.RED)
+def create_walls():
+    wall1_poly = pymunk.Poly.create_box(None, size=(10,global_vars.full_height * 1.1))
+    wall1_poly.collision_type = Coll_Type.ENVIRONMENT
+    wall1_poly_moment = pymunk.moment_for_poly(250, wall1_poly.get_vertices())
+    wall1_body = pymunk.Body(250, wall1_poly_moment, pymunk.Body.STATIC)
+    wall1_poly.body = wall1_body
+    wall1_body.position = 0,0
+    space.add(wall1_poly, wall1_body) 
+
+    wall2_poly = pymunk.Poly.create_box(None, size=(global_vars.full_width * 2.3,10))
+    wall2_poly.collision_type = Coll_Type.ENVIRONMENT
+    wall2_poly_moment = pymunk.moment_for_poly(250, wall2_poly.get_vertices())
+    wall2_body = pymunk.Body(250, wall2_poly_moment, pymunk.Body.STATIC)
+    wall2_poly.body = wall2_body
+    wall2_body.position = 0, global_vars.full_height
+    space.add(wall2_poly, wall2_body) 
+
+    wall3_poly = pymunk.Poly.create_box(None, size=(10,global_vars.full_height * 2.3))
+    wall3_poly.collision_type = Coll_Type.ENVIRONMENT
+    wall3_poly_moment = pymunk.moment_for_poly(250, wall3_poly.get_vertices())
+    wall3_body = pymunk.Body(250, wall3_poly_moment, pymunk.Body.STATIC)
+    wall3_poly.body = wall3_body
+    wall3_body.position = global_vars.full_width,0
+    space.add(wall3_poly, wall3_body) 
+
+    wall4_poly = pymunk.Poly.create_box(None, size=(global_vars.full_width* 1.1,10))
+    wall4_poly.collision_type = Coll_Type.ENVIRONMENT
+    wall4_poly_moment = pymunk.moment_for_poly(250, wall4_poly.get_vertices())
+    wall4_body = pymunk.Body(250, wall4_poly_moment, pymunk.Body.STATIC)
+    wall4_poly.body = wall4_body
+    wall4_body.position = 0,0
+    space.add(wall4_poly, wall4_body) 
+
+tank = Tank(pos = (640,350), color = Color.RED)
 tanks[tank.idn] = tank
 tank2 = Tank(pos = (500,500), color = Color.BLACK, idn=1)
 tanks[tank2.idn] = tank2
+
 projectile_tank_handler = space.add_collision_handler(Coll_Type.TANK, Coll_Type.PROJECTILE)
+projectile_environment_handler = space.add_collision_handler(Coll_Type.ENVIRONMENT, Coll_Type.PROJECTILE)
+
 switch_sound = pyglet.media.load("res/sounds/switch28.wav", streaming=False)
 bg_sound = pyglet.media.load("res/music/bgmusic2.wav", streaming=True)
 bg_loop = pyglet.media.SourceGroup(bg_sound.audio_format, None)
@@ -41,9 +80,6 @@ bg_loop.queue(bg_sound)
 bg_player = pyglet.media.Player()
 bg_player.queue(bg_loop)
 bg_player.volume = 0.05
-
-pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
-pyglet.gl.glBlendFunc(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA)
 
 def begin(arbiter, space, data):
     tankShape = arbiter.shapes[0]
@@ -66,30 +102,78 @@ def post_solve(arbiter, space, data):
 def separate(arbiter, space, data):
     pass
 
+def beginP(arbiter, space, data):
+    projectileShape = arbiter.shapes[1]
+    if projectiles.get(projectileShape.idn) is not None:
+        projectile = projectiles[projectileShape.idn]
+        projectile.destroy()
+        projectiles.pop(projectile.idn)
+        print("asdfasdf")
+    return True
+
+create_walls()
+
+projectile_environment_handler.begin = beginP
 projectile_tank_handler.begin = begin
 projectile_tank_handler.pre_solve = pre_solve
 projectile_tank_handler.post_solve = post_solve
 projectile_tank_handler.separate = separate
-map1 = Game_Map.generate_map(30,30)
+map1 = Game_Map.generate_map(global_vars.number_tile_x,global_vars.number_tile_y)
 minimap = Minimap(map1)
 def reroll_map():
     global map1
     global minimap
     for x in range(len(map1.sprite_matrix)):
         map1.sprite_matrix[x].delete()
-    map1 = Game_Map.generate_map(30,30)
+    map1 = Game_Map.generate_map(global_vars.number_tile_x,global_vars.number_tile_y)
     for x in range(len(minimap.sprite_matrix)):
         minimap.sprite_matrix[x].delete()
     minimap = Minimap(map1)
 hud = Hud()
+camera = Camera()
+camera.init_gl(Game.WIDTH, Game.HEIGHT)
+window.on_resize = camera.on_resize
+
+window.on_mouse_scroll = camera.on_mouse_scroll
+
+def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+        # Move camera
+        global camera
+        print("drasg")
+        camera.left   -= dx*camera.zoom_level
+        camera.right  -= dx*camera.zoom_level
+        camera.bottom -= dy*camera.zoom_level
+        camera.top    -= dy*camera.zoom_level
+
+window.on_mouse_drag = on_mouse_drag
+
 @window.event
 def on_draw():
     window.clear()
+    camera.left = tank.sprite.position[0] - 640
+    camera.right = camera.left + camera.width
+    camera.bottom = tank.sprite.position[1] - 350
+    camera.top = camera.bottom + camera.height
+    if camera.left < 0:
+        camera.left = 0
+        camera.right = camera.left + Game.WIDTH
+    elif camera.right > global_vars.full_width:
+        camera.right = global_vars.full_width
+        camera.left = camera.right - Game.WIDTH
+    if camera.bottom < 0:
+        camera.bottom = 0
+        camera.top = Game.HEIGHT
+    elif camera.top > global_vars.full_height:
+        camera.top = global_vars.full_height
+        camera.bottom = camera.top - Game.HEIGHT
+    camera.apply_World()
     bg_batch.draw()
-    hud.draw()
     fg_batch.draw()
     tank.hp_bar.draw()
     tank2.hp_bar.draw()
+    camera.apply_Hud()
+    hud.draw()
+    hud_batch.draw()
     minimap.update()
     if keys[key._1]:
         if tank.ammo_mode == Projectile.Ammo_Type.AP:

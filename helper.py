@@ -1,6 +1,7 @@
 import pyglet
 class Rectangle:
-    def __init__(self,lx,ly, width, height, color=(0,0,0,0)):
+    def __init__(self,lx,ly, width, height, color=(0,0,0,0), hollow=False):
+        self.hollow = hollow
         self.width = width
         self.height = height
         self.lx = lx 
@@ -19,4 +20,8 @@ class Rectangle:
                                    self. color[0],self.color[1],self.color[2],self.color[3],
                                      self.color[0],self.color[1],self.color[2],self.color[3], 
                                      self.color[0],self.color[1],self.color[2],self.color[3]))
-        pyglet.graphics.draw(4, pyglet.gl.GL_QUADS, self.vertices, self.vertice_color)
+        if not self.hollow:
+            pyglet.graphics.draw(4, pyglet.gl.GL_QUADS, self.vertices, self.vertice_color)
+        else:
+            pyglet.graphics.draw(4, pyglet.gl.GL_LINE_LOOP, self.vertices, self.vertice_color)
+
