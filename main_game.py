@@ -90,7 +90,7 @@ def on_draw():
     fg_batch.draw()
     tank.hp_bar.draw()
     tank2.hp_bar.draw()
-    
+    minimap.update()
     if keys[key._1]:
         if tank.ammo_mode == Projectile.Ammo_Type.AP:
             switch_sound.play()
