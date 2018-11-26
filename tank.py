@@ -1,27 +1,21 @@
 import pyglet
 import pymunk
-from pyglet.window import key
 from pyglet import clock
 import math
 from math import degrees
 from math import sin
 from math import cos
-from enum import Enum
-from enum import IntEnum
-import random
-from opensimplex import OpenSimplex
 import constants
 
 from projectile import Projectile
 from constants import Color
 from constants import Coll_Type
 from constants import Direction
+
 from global_vars import space
 from global_vars import tanks
-from global_vars import window
-from global_vars import bg_batch
 from global_vars import fg_batch
-from global_vars import keys
+
 from global_vars import projectiles
 from global_vars import projectile_count
 from global_vars import tank_group
@@ -30,6 +24,7 @@ from global_vars import smoke_group
 from global_vars import explosion_group
 from global_vars import effects
 from global_vars import effect_count
+
 from helper import Rectangle
 
 class Tank:
@@ -162,6 +157,9 @@ class Tank:
         smoke_sprite.rotation = self.barrelSprite.rotation
         
         Tank.firing_sound.play()
+        Tank.reloading_sound.play()
+        self.isReloading = True
+
         global effect_count
         effect_count += 1
         smoke_sprite.idn = effect_count
@@ -170,11 +168,11 @@ class Tank:
             effects[smoke_sprite.idn].delete()
             effects.pop(smoke_sprite.idn)
         clock.schedule_once(smoke, 1)
-        self.isReloading = True
-        Tank.reloading_sound.play()
+
         def reload(self, idn):
             tanks[idn].isReloading = False
         clock.schedule_once(reload, 2, self.idn)
+        
     def move(self, direction = Direction.FORWARD):
         if not self.moving:
             Tank.sound_player.play()
@@ -205,8 +203,6 @@ class Tank:
         self.barrelBody.angular_velocity = 0
     def destroy(self):
         self.alive = False
-        global effect_count
-        effect_count += 1
         explosion_images = []
         for i in range(1,10):
             image = pyglet.image.load("res/PNG/Smoke/explosion/explosion%s.png" % (i))
@@ -218,7 +214,17 @@ class Tank:
         explosion_sprite = pyglet.sprite.Sprite(explosion_anim, x = self.sprite.position[0], y = self.sprite.position[1] + 10, batch = fg_batch, group=explosion_group)
         explosion_sprite.scale = Tank.SCALE
         Tank.explosion_sound.play()
+
+        global effect_count
+        effect_count += 1
+        explosion_sprite.idn = effect_count
         effects[effect_count] = explosion_sprite
+
+        def explosion_s(self):
+            effects[explosion_sprite.idn].delete()
+            effects.pop(explosion_sprite.idn)
+        clock.schedule_once(explosion_s, 1)
+
     def hit(self):
         hit_images = []
         for i in range(1,10):
@@ -231,5 +237,13 @@ class Tank:
         hit_sprite = pyglet.sprite.Sprite(hit_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=explosion_group)
         hit_sprite.scale = Tank.SCALE
         hit_sprite.rotation = self.sprite.rotation
-        # effect_count += 1
-        # effects[effect_count] = hit_sprite
+
+        global effect_count
+        effect_count += 1
+        hit_sprite.idn = effect_count
+        effects[effect_count] = hit_sprite
+
+        def hit_s(self):
+            effects[hit_sprite.idn].delete()
+            effects.pop(hit_sprite.idn)
+        clock.schedule_once(hit_s, 1)

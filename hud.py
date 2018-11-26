@@ -1,32 +1,12 @@
 import pyglet
 import pymunk
-from pyglet.window import key
-from pyglet import clock
-import math
-from math import degrees
-from math import sin
-from math import cos
-from enum import Enum
-from enum import IntEnum
-import random
-from opensimplex import OpenSimplex
-from global_vars import space
-from global_vars import tanks
-from global_vars import window
-from global_vars import bg_batch
+
 from global_vars import hud_batch
 from global_vars import hud_group
-from global_vars import hud_batch
-from global_vars import keys
-from global_vars import projectiles
-from tank import Tank
-from projectile import Projectile
-from constants import Color
 from constants import Game
-from constants import Coll_Type
-from constants import Direction
-from game_map import Game_Map
+
 from helper import Rectangle
+
 class Hud:
     def __init__(self):
         self.bullet1_x = Game.WIDTH - 100
@@ -69,7 +49,7 @@ class Hud:
         self.bullet2_text.color = (255,255,255,100)
         self.bullet2_ammo.color = (255,255,255,100)
 
-        self.minimap_border = Rectangle(0, 0, 260, 260, (40,40,40,200))
+        self.minimap_border = Rectangle(0, 0, 260, 260, (40,40,40,255))
     def update(self, ammo1, ammo2):
         self.bullet1_ammo = pyglet.text.HTMLLabel(
         '<font face="Arial" size="13" color="white"><b>x%d</b></font>' % (ammo1),

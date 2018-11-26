@@ -14,7 +14,6 @@ class Projectile:
         REGULAR = 1
         AP = 2
     SCALE = 0.65
-    DAMAGE = 10
     HEIGHT = 34 * SCALE
     WIDTH = 20 * SCALE
     def __init__(self, pos = (0,0), color=Color.RED, idn=0, src_idn = 0, type=Ammo_Type.REGULAR):

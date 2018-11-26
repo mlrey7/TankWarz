@@ -51,7 +51,6 @@ class Game_Map:
             return gen2.noise2d(nx, ny) / 2 + 0.5
         def generate_values():
             values = []
-            print((width, height))
             for x in range(width):
                 values.append([0] * height)
                 for y in range(height):
@@ -65,7 +64,6 @@ class Game_Map:
                     e /= (1.0+0.50+0.25+0.13+0.06+0.03)
                     e = e ** 4
                     e *= 10
-                    print(e)
                     m = (1.00 * noise2( 1 * nx,  1 * ny)
                         + 0.75 * noise2( 2 * nx,  2 * ny)
                         + 0.33 * noise2( 4 * nx,  4 * ny)

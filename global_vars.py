@@ -1,15 +1,6 @@
 import pyglet
 import pymunk
 from pyglet.window import key
-from pyglet import clock
-import math
-from math import degrees
-from math import sin
-from math import cos
-from enum import Enum
-from enum import IntEnum
-import random
-from opensimplex import OpenSimplex
 import constants
 
 space = pymunk.Space()
@@ -23,7 +14,7 @@ full_width = number_tile_x * 50
 full_height = number_tile_y* 50
 
 keys = key.KeyStateHandler()
-window.push_handlers(keys)
+
 bg_group = pyglet.graphics.OrderedGroup(0)
 tracks_group = pyglet.graphics.OrderedGroup(1)
 tank_group = pyglet.graphics.OrderedGroup(2)
