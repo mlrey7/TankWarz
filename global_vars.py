@@ -33,4 +33,5 @@ projectile_count = 0
 effect_count = 0
 effects = dict()
 
-corner_point = constants.Game.WIDTH, constants.Game.HEIGHT
+host = 'localhost'
+PORT = 27806

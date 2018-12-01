@@ -26,6 +26,7 @@ from global_vars import effects
 from global_vars import effect_count
 
 from helper import Rectangle
+from enum import IntEnum
 
 class Tank:
     SCALE = 0.65
@@ -117,6 +118,7 @@ class Tank:
 
         space.add(self.poly, self.body)
         space.add(self.barrelPoly, self.barrelBody)
+
 
     def update(self, dt):
         self.sprite.position = self.body.position

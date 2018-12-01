@@ -1,11 +1,8 @@
 import pymunk
-from global_vars import projectiles
-from global_vars import tanks
-from global_vars import space
 from constants import Coll_Type
 
 class Collision_Handler:
-    def initialize_handler():
+    def initialize_handler(space, tanks, projectiles):
         projectile_tank_handler = space.add_collision_handler(Coll_Type.TANK, Coll_Type.PROJECTILE)
         projectile_environment_handler = space.add_collision_handler(Coll_Type.ENVIRONMENT, Coll_Type.PROJECTILE)
 
