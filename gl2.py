@@ -15,7 +15,7 @@ from global_vars import fg_batch
 from global_vars import hud_batch
 from global_vars import keys
 from global_vars import projectiles
-
+from global_vars import host
 from tank import Tank
 from projectile import Projectile
 
@@ -43,8 +43,12 @@ class Main_Window2(pyglet.window.Window):
         super(Main_Window2, self).__init__(Game.WIDTH, Game.HEIGHT, config=conf)
         self.cl_id = int(time.time())
         self.client = Game_Client2(width, height, self.cl_id)
-        self.client.connect()
+        self.client.connect(host)
         self.push_handlers(keys)
+        self.ping = pyglet.text.HTMLLabel(
+            '<font face="Arial" size="13" color="white"><b>latency: %3.3f ms fps:%3.3f</b></font>' % (self.client._client.latency, pyglet.clock.get_fps()),
+            x=self.width-130, y=self.height-12,
+            anchor_x='center', anchor_y='center')
     def on_draw(self):
         self.clear()
         if self.client.running:
@@ -58,6 +62,11 @@ class Main_Window2(pyglet.window.Window):
             self.client.hud.draw()
             hud_batch.draw()
             self.client.minimap.update()
+            self.ping = pyglet.text.HTMLLabel(
+            '<font face="Arial" size="13" color="white"><b>latency: %3.3f ms fps:%3.3f</b></font>' % (self.client._client.latency, pyglet.clock.get_fps()),
+            x=self.width-130, y=self.height-12,
+            anchor_x='center', anchor_y='center')
+            self.ping.draw()
             #print("tank", degrees(self.client.tank.body.angle), self.client.tank.sprite.rotation)
             # dtt = 1.0/60.0
             # for tank in tanks.values():
@@ -219,7 +228,7 @@ class Game_Client2:
             self._client.send_reliable_message(msg)
 
     def rotate_left_turret(self):
-        #self.tank.rotateTurret(Direction.LEFT)  
+        self.tank.rotateTurret(Direction.LEFT)  
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.TURRET_ROTATE_LEFT
@@ -232,21 +241,21 @@ class Game_Client2:
                 self.connect()
             self._client.send_message(msg)
     def rotate_right_turret(self):
-        #self.tank.rotateTurret(Direction.RIGHT)
+        self.tank.rotateTurret(Direction.RIGHT)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.TURRET_ROTATE_RIGHT
         self._client.send_reliable_message(msg)
         #print("client send message rotate right")
     def stop_rotate_turret(self):
-        #self.tank.stopRotateTurret()
+        self.tank.stopRotateTurret()
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.STOP_ROTATING_TURRET
         self._client.send_message(msg)
     def move_forward(self):
         #if self.tank.moving == False:
-        #self.tank.move(Direction.FORWARD)
+        self.tank.move(Direction.FORWARD)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.MOVE_FORWARD
@@ -254,7 +263,7 @@ class Game_Client2:
         #self._client.send_message(self.tank.get_message())
     def move_backward(self):
         #if self.tank.moving == False:
-        #self.tank.move(Direction.BACKWARD)
+        self.tank.move(Direction.BACKWARD)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.MOVE_BACKWARD
@@ -262,28 +271,28 @@ class Game_Client2:
         #self._client.send_message(self.tank.get_message())
     def stop(self):
         #if self.tank.moving == True:
-        #self.tank.stop()
+        self.tank.stop()
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.STOP_MOVING
         self._client.send_message(msg)
         #self._client.send_message(self.tank.get_message())
     def rotate_right(self):
-        #self.tank.rotate(Direction.RIGHT)
+        self.tank.rotate(Direction.RIGHT)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.ROTATE_RIGHT
         self._client.send_message(msg)
         #self._client.send_message(self.tank.get_message())
     def rotate_left(self):
-        #self.tank.rotate(Direction.LEFT)
+        self.tank.rotate(Direction.LEFT)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.ROTATE_LEFT
         self._client.send_message(msg)
         #self._client.send_message(self.tank.get_message())
     def stop_rotate(self):
-        #self.tank.stopRotating()
+        self.tank.stopRotating()
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.STOP_ROTATING

@@ -33,5 +33,6 @@ projectile_count = 0
 effect_count = 0
 effects = dict()
 
-host = 'localhost'
+host = '192.168.254.104'
+#host = 'TankWarz'
 PORT = 27806
