@@ -16,6 +16,8 @@ class Color(Enum):
     RED = "Red"
     BEIGE = "Beige"
     
+    def to_int(c):
+        return IntColor[c]
     def from_int(c):
         return ColorInt[c]
 
@@ -24,7 +26,12 @@ ColorInt = {1 : Color.BLACK,
         3 : Color.GREEN,
         4 : Color.RED,
         5 : Color.BEIGE}
-        
+
+IntColor = {Color.BLACK : 1,
+        Color.BLUE : 2,
+        Color.GREEN : 3,
+        Color.RED : 4,
+        Color.BEIGE : 5}       
 class Coll_Type(IntEnum):
     TANK = 1
     PROJECTILE = 2

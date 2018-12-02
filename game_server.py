@@ -25,12 +25,10 @@ class Game_Server:
         self.server.OnConnectRequest += self.join_request_handler
         self.server.OnMessage += self.message_handler
         self.update_timer = time.time()
-        self.tanks = {}
-        self.projectiles = {}
         self.seed_a = seed_a
         self.seed_b = seed_b
         
-        collision_handler.Collision_Handler.initialize_handler(space, tanks, projectiles)
+        collision_handler.Server_Collision_Handler.initialize_handler(space, tanks, projectiles, self.server)
 
         create_walls()
 
@@ -40,40 +38,60 @@ class Game_Server:
     def update(self, dt):
         dtt = 1.0/60.0
         space.step(dtt)
-        for tank in self.tanks.values():
+        for tank in tanks.values():
             tank.update(dtt)
         for p in projectiles.values():
             p.update(dtt)
-
+        #self._send_update()
     def message_handler(self, sender, message):
         if legume.messages.message_factory.is_a(message, 'TankCreate'):
-            tanks[message.id.value] = Tank.create_from_message(message)
+            print("Server Tank has been created")
+            tanks[message.id.value] = SharedTank.create_from_message(message)
         elif legume.messages.message_factory.is_a(message, 'TankUpdate'):
             tanks[message.id.value].update_from_message(message)
         elif legume.messages.message_factory.is_a(message, 'TankCommand'):
-            command = Tank.Command.from_int(message.command.value)
+            command = SharedTank.Command.from_int(message.command.value)
             tank = tanks[message.id.value]
-            if command == Tank.Command.MOVE_FORWARD:
+            if command == SharedTank.Command.MOVE_FORWARD:
                 tank.move(Direction.FORWARD)
-            elif command == Tank.Command.MOVE_BACKWARD:
+            elif command == SharedTank.Command.MOVE_BACKWARD:
                 tank.move(Direction.BACKWARD)
-            elif command == Tank.Command.ROTATE_RIGHT:
+            elif command == SharedTank.Command.STOP_MOVING:
+                tank.stop()
+            elif command == SharedTank.Command.ROTATE_RIGHT:
                 tank.rotate(Direction.RIGHT)
-            elif command == Tank.Command.ROTATE_LEFT:
+            elif command == SharedTank.Command.ROTATE_LEFT:
                 tank.rotate(Direction.LEFT)
-            elif command == Tank.Command.TURRET_ROTATE_RIGHT:
+            elif command == SharedTank.Command.STOP_ROTATING:
+                tank.stopRotating()
+            elif command == SharedTank.Command.TURRET_ROTATE_RIGHT:
                 tank.rotateTurret(Direction.RIGHT)
-            elif command == Tank.Command.TURRET_ROTATE_LEFT:
+            elif command == SharedTank.Command.TURRET_ROTATE_LEFT:
                 tank.rotateTurret(Direction.LEFT)
-            elif command == Tank.Command.TURRET_ROTATE_RIGHT:
-                tank.rotateTurret(Direction.RIGHT)
-            elif command == Tank.Command.FIRE:
+            elif command == SharedTank.Command.STOP_ROTATING_TURRET:
+                tank.stopRotateTurret()
+            elif command == SharedTank.Command.FIRE:
                 tank.fire()
-            elif command == Tank.Command.DESTROY:
+            elif command == SharedTank.Command.DESTROY:
                 tank.destroy()
+            # elif command == SharedTank.Command.HIT:
+            #     tank.hit()    
             else:
                 print(command)
-
+        elif legume.messages.message_factory.is_a(message, 'TankSwitchAmmo'):
+            tank = tanks[message.id.value]
+            tank.ammo_type = message.ammo_type.value
+            # msg = TankSwitchAmmo()
+            # msg.id.value = message.id.value
+            # msg.ammo_type = message
+            self.server.send_message_to_all(message)
+        elif legume.messages.message_factory.is_a(message, 'TankFire'):
+            tank = tanks[message.id.value]
+            tank.fire(message.projectile_id.value) #TBD
+            msg = TankFireClient()
+            msg.id.value = message.id.value
+            msg.projectile_id.value = message.projectile_id.value
+            self.server.send_message_to_all(msg)
         elif legume.messages.message_factory.is_a(message, 'ProjectileCreate'):
             projectiles[message.id.value] = Projectile.create_from_message(message)
         elif legume.messages.message_factory.is_a(message, 'ProjectileUpdate'):
@@ -81,7 +99,8 @@ class Game_Server:
         elif legume.messages.message_factory.is_a(message, 'MapCreate'):
             pass
         else:
-            print('Message: %s' % message)
+            pass
+            #print('Message: %s' % message)
 
     def join_request_handler(self, sender, args):
         self.send_initial_state(sender)
@@ -96,7 +115,6 @@ class Game_Server:
         while True:
             # Physics stuff
             # self.update()
-
             # Network stuff
             if time.time() > self.update_timer + UPDATE_RATE:
                 self._send_update()
@@ -109,19 +127,21 @@ class Game_Server:
             server.send_message_to_all(tank.get_message())
         for projectile in projectiles.values():
             server.send_message_to_all(projectile.get_message())
+        
 
     def send_initial_state(self, endpoint):
         print("Connected to:", endpoint)
-        # map_message = MapCreate()
-        # map_message.l.value = number_tile_x
-        # map_message.w.value = number_tile_y
-        # map_message.seed_a = self.seed_a
-        # map_message.seed_a = self.seed_b
-        # endpoint.send_message(map_message)
-        # for tank in tanks.values():
-        #     endpoint.send_message(tank.get_message())
-        # for projectile in projectiles.values():
-        #     endpoint.send_message(projectile.get_message())
+        map_message = MapCreate()
+        map_message.l.value = number_tile_x
+        map_message.w.value = number_tile_y
+        map_message.seed_a.value = int(self.seed_a)
+        map_message.seed_b.value = int(self.seed_b)
+        endpoint.send_message(map_message)
+        for tank in tanks.values():
+            print("NICE SEND ENDPOINT BOI")
+            endpoint.send_message(tank.get_message())
+        for projectile in projectiles.values():
+            endpoint.send_message(projectile.get_message())
 
 def create_walls():
     wall1_poly = pymunk.Poly.create_box(None, size=(10,full_height * 1.1))

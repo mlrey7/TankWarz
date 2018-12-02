@@ -5,7 +5,7 @@ import time
 
 from pyglet.window import key
 from pyglet import clock
-
+from math import degrees
 import global_vars
 from global_vars import space
 from global_vars import tanks
@@ -38,7 +38,7 @@ class Main_Window(pyglet.window.Window):
                       depth_size=16,
                       double_buffer=True)
         super(Main_Window, self).__init__(Game.WIDTH, Game.HEIGHT, config=conf)
-
+        
         self.push_handlers(keys)
 
         self.tank = Tank(pos = (640,350), color = Color.RED)
@@ -62,7 +62,7 @@ class Main_Window(pyglet.window.Window):
         seed_a = time.time()
         seed_b = time.time() + 2
         self.map1 = Game_Map.generate_map(global_vars.number_tile_x,global_vars.number_tile_y, seed_a, seed_b)
-        self.minimap = Minimap(self.map1)
+        self.minimap = Minimap(self.map1, 1)
 
         self.hud = Hud()
         self.camera = Camera()
@@ -81,7 +81,7 @@ class Main_Window(pyglet.window.Window):
         self.map1 = Game_Map.generate_map(global_vars.number_tile_x,global_vars.number_tile_y, seed_a, seed_b)
         for x in range(len(self.minimap.sprite_matrix)):
             self.minimap.sprite_matrix[x].delete()
-        self.minimap = Minimap(self.map1)
+        self.minimap = Minimap(self.map1, 0)
 
     def update_camera_player(self):
         self.camera.left = self.tank.sprite.position[0] - 640
@@ -113,11 +113,11 @@ class Main_Window(pyglet.window.Window):
         self.hud.draw()
         hud_batch.draw()
         self.minimap.update()
-
+        print("tank", degrees(self.tank.body.angle), self.tank.sprite.rotation)
         if keys[key._1]:
-            if self.tank.ammo_mode == Projectile.Ammo_Type.AP:
+            if self.tank.ammo_type == Projectile.Ammo_Type.AP:
                 self.switch_sound.play()
-                self.tank.ammo_mode = Projectile.Ammo_Type.REGULAR
+                self.tank.ammo_type = Projectile.Ammo_Type.REGULAR
 
                 self.hud.bullet1_overlay.color = (40,40,40,200)
                 self.hud.bullet1_sprite.opacity = 255
@@ -129,9 +129,9 @@ class Main_Window(pyglet.window.Window):
                 self.hud.bullet2_text.color = (255,255,255,100)
                 self.hud.bullet2_ammo.color = (255,255,255,100)
         elif keys[key._2]:
-            if self.tank.ammo_mode == Projectile.Ammo_Type.REGULAR:
+            if self.tank.ammo_type == Projectile.Ammo_Type.REGULAR:
                 self.switch_sound.play()
-                self.tank.ammo_mode = Projectile.Ammo_Type.AP
+                self.tank.ammo_type = Projectile.Ammo_Type.AP
                 self.hud.bullet1_overlay.color = (40,40,40,100)
                 self.hud.bullet1_sprite.opacity = 100
                 self.hud.bullet1_text.color = (255,255,255,100)
@@ -172,6 +172,10 @@ class Main_Window(pyglet.window.Window):
         space.step(dtt)
         for tank in tanks.values():
             tank.update(dtt)
+            print(tank.body.position)
+            print(tank.body.velocity)
+            print(tank.body.angular_velocity)
+            print(tank.body.angle)
         for p in projectiles.values():
             p.update(dtt)
 

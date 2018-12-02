@@ -7,6 +7,7 @@ from tile import Tile
 from global_vars import bg_batch
 from global_vars import fg_batch
 from global_vars import bg_group
+
 class Game_Map:
     grass_img = pyglet.image.load("res/PNG/Environment/grass_s.png")
     sand_img = pyglet.image.load("res/PNG/Environment/sand_s.png")

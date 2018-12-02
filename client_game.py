@@ -35,43 +35,38 @@ import collision_handler
 from pyglet.gl import Config
 
 class Main_Window(pyglet.window.Window):
-    def __init__(self, width, height):
+    
+    def __init__(self, width, height, cl_id):
         conf = Config(sample_buffers=1,
                       samples=4,
                       depth_size=16,
                       double_buffer=True)
         super(Main_Window, self).__init__(Game.WIDTH, Game.HEIGHT, config=conf)
-
-        # self.cl_id = int(time.time())
-        # self.running = True
-        # self._client = legume.Client()
-        # self._client.OnMessage += self.message_handler
-        # self._client.OnConnectRequestAccepted += self.on_connect_accepted
-        # self._client.OnConnectRequestRejected += self.on_connect_rejected
-        # self.lock = threading.Lock()
-
-        self.push_handlers(keys)
-
-        self.tank = Tank(pos = (640,350), color = Color.RED, idn=self.cl_id)
-        tanks[self.tank.idn] = self.tank
-
-        collision_handler.Collision_Handler.initialize_handler(space, tanks, projectiles)
-
+        self.running = False
+        self.cl_id = cl_id
+        self.tank = None
         self.switch_sound = pyglet.media.load("res/sounds/switch28.wav", streaming=False)
         self.bg_sound = pyglet.media.load("res/music/bgmusic2.wav", streaming=True)
         self.bg_loop = pyglet.media.SourceGroup(self.bg_sound.audio_format, None)
         self.bg_loop.loop = True
         self.bg_loop.queue(self.bg_sound)
         self.bg_player = pyglet.media.Player()
-        self.bg_player.queue(self.bg_loop)
         self.bg_player.volume = 0.05
-
-        create_walls()
-
-        seed_a = time.time()
-        seed_b = time.time() + 2
+        self.bg_player.queue(self.bg_loop)
         self.game_map = None
         self.minimap = None
+
+        self.hud = None
+        self.camera = None
+
+    def start_game(self):
+        self.push_handlers(keys)
+
+        self.tank = tanks[self.cl_id]
+
+        collision_handler.Collision_Handler.initialize_handler(space, tanks, projectiles)
+
+        create_walls()
 
         self.hud = Hud()
         self.camera = Camera()
@@ -81,16 +76,7 @@ class Main_Window(pyglet.window.Window):
         self.bg_player.play()
 
         pyglet.clock.schedule_interval(self.update, 1.0/60)
-
-    # def reroll_map(self):
-    #     seed_a = time.time()
-    #     seed_b = time.time() + 2
-    #     for x in range(len(self.game_map.sprite_matrix)):
-    #         self.game_map.sprite_matrix[x].delete()
-    #     self.game_map = Game_Map.generate_map(global_vars.number_tile_x,global_vars.number_tile_y, seed_a, seed_b)
-    #     for x in range(len(self.minimap.sprite_matrix)):
-    #         self.minimap.sprite_matrix[x].delete()
-    #     self.minimap = Minimap(self.game_map)
+        self.running = True
 
     def update_camera_player(self):
         self.camera.left = self.tank.sprite.position[0] - 640
@@ -112,16 +98,17 @@ class Main_Window(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
-        self.update_camera_player()
-        self.camera.apply_World()
-        bg_batch.draw()
-        fg_batch.draw()
-        for t in tanks.values():
-            t.hp_bar.draw()
-        self.camera.apply_Hud()
-        self.hud.draw()
-        hud_batch.draw()
-        self.minimap.update()
+        if self.running:
+            self.update_camera_player()
+            self.camera.apply_World()
+            bg_batch.draw()
+            fg_batch.draw()
+            for t in tanks.values():
+                t.hp_bar.draw()
+            self.camera.apply_Hud()
+            self.hud.draw()
+            hud_batch.draw()
+            self.minimap.update()
 
         if keys[key._1]:
             if self.tank.ammo_mode == Projectile.Ammo_Type.AP:
@@ -152,6 +139,10 @@ class Main_Window(pyglet.window.Window):
                 self.hud.bullet2_ammo.color = (255,255,255,255)
 
         if keys[key.J]:
+            msg = TankCommand()
+            msg.id.value = self.cl_id
+            msg.command.value = Tank.Command.ROTATE_LEFT
+            self._client.send_message(msg)
             self.tank.rotateTurret(Direction.LEFT)
         elif keys[key.L]:
             self.tank.rotateTurret(Direction.RIGHT)
@@ -190,61 +181,54 @@ class Main_Window(pyglet.window.Window):
     #     print("NOT CONNECTED")
     def message_handler(self, sender, message):
         if legume.messages.message_factory.is_a(message, 'TankCreate'):
-            tanks[message.id.value] = Tank.create_from_message(message)
-        elif legume.messages.message_factory.is_a(message, 'TankUpdate'):
-            tanks[message.id.value].update_from_message(message)
-        elif legume.messages.message_factory.is_a(message, 'TankCommand'):
-            command = Tank.Command.from_int(message.command.value)
-            tank = tanks[message.id.value]
-            if command == Tank.Command.MOVE_FORWARD:
-                tank.move(Direction.FORWARD)
-            elif command == Tank.Command.MOVE_BACKWARD:
-                tank.move(Direction.BACKWARD)
-            elif command == Tank.Command.ROTATE_RIGHT:
-                tank.rotate(Direction.RIGHT)
-            elif command == Tank.Command.ROTATE_LEFT:
-                tank.rotate(Direction.LEFT)
-            elif command == Tank.Command.TURRET_ROTATE_RIGHT:
-                tank.rotateTurret(Direction.RIGHT)
-            elif command == Tank.Command.TURRET_ROTATE_LEFT:
-                tank.rotateTurret(Direction.LEFT)
-            elif command == Tank.Command.TURRET_ROTATE_RIGHT:
-                tank.rotateTurret(Direction.RIGHT)
-            elif command == Tank.Command.FIRE:
-                tank.fire()
-            elif command == Tank.Command.DESTROY:
-                tank.destroy()
+            if tanks.get(message.id.value) is None:
+                tanks[message.id.value] = Tank.create_from_message(message)
+                if message.id.value == self.cl_id:
+                    self.start_game()
             else:
-                print(command)
-        elif legume.messages.message_factory.is_a(message, 'ProjectileCreate'):
-            projectiles[message.id.value] = Projectile.create_from_message(message)
-        elif legume.messages.message_factory.is_a(message, 'ProjectileUpdate'):
-            projectiles[message.id.value].update_from_message(message)
-        elif legume.messages.message_factory.is_a(message, 'MapCreate'):
-            l = message.l.value
-            w = message.w.value
-            seed_a = message.seed_a.value
-            seed_b = message.seed_b.value
-            self.game_map = Game_Map.generate_map(l,w, seed_a, seed_b)
-            self.minimap = Minimap(self.game_map)
-        else:
-            print('Message: %s' % message)
-    
-    # def connect(self, host='localhost'):
-    #     self._client.connect((host, PORT))
-    # def go(self):
-    #     while self.running:
-    #         try:
-    #             self.lock.acquire()
-    #             self._client.update()
-    #         except:
-    #             self.running = False
-    #             raise
-    #         finally:
-    #             pass
-    #             self.lock.release()
-    #         time.sleep(0.0001)
-    #     print('Exited go')
+                tanks[message.id.value].update_from_message(message)
+        elif legume.messages.message_factory.is_a(message, 'TankUpdate'):
+            if tanks.get(message.id.value) is None:
+                tanks[message.id.value] = Tank.create_from_message(message)
+            else:
+                tanks[message.id.value].update_from_message(message)
+        if self.running:
+            if legume.messages.message_factory.is_a(message, 'TankCommand'):
+                command = Tank.Command.from_int(message.command.value)
+                tank = tanks[message.id.value]
+                if command == Tank.Command.MOVE_FORWARD:
+                    tank.move(Direction.FORWARD)
+                elif command == Tank.Command.MOVE_BACKWARD:
+                    tank.move(Direction.BACKWARD)
+                elif command == Tank.Command.ROTATE_RIGHT:
+                    tank.rotate(Direction.RIGHT)
+                elif command == Tank.Command.ROTATE_LEFT:
+                    tank.rotate(Direction.LEFT)
+                elif command == Tank.Command.TURRET_ROTATE_RIGHT:
+                    tank.rotateTurret(Direction.RIGHT)
+                elif command == Tank.Command.TURRET_ROTATE_LEFT:
+                    tank.rotateTurret(Direction.LEFT)
+                elif command == Tank.Command.TURRET_ROTATE_RIGHT:
+                    tank.rotateTurret(Direction.RIGHT)
+                elif command == Tank.Command.FIRE:
+                    tank.fire()
+                elif command == Tank.Command.DESTROY:
+                    tank.destroy()
+                else:
+                    print(command)
+            elif legume.messages.message_factory.is_a(message, 'ProjectileCreate'):
+                projectiles[message.id.value] = Projectile.create_from_message(message)
+            elif legume.messages.message_factory.is_a(message, 'ProjectileUpdate'):
+                projectiles[message.id.value].update_from_message(message)
+            elif legume.messages.message_factory.is_a(message, 'MapCreate'):
+                l = message.l.value
+                w = message.w.value
+                seed_a = int(message.seed_a.value)
+                seed_b = int(message.seed_b.value)
+                self.game_map = Game_Map.generate_map(l,w, seed_a, seed_b)
+                self.minimap = Minimap(self.game_map)
+            else:
+                print('Message: %s' % message)
 
 def create_walls():
     wall1_poly = pymunk.Poly.create_box(None, size=(10,global_vars.full_height * 1.1))
@@ -316,16 +300,16 @@ if __name__ == '__main__':
     def on_connect_accepted(self,args):
         print("Connected")
         message = TankCreate()
-        message.id.value = client.cl_id
+        message.id.value = game_client.cl_id
         message.pos_x.value = 500
         message.pos_y.value = 500
         message.rot.value = 0
         message.l_vel_x.value = 0
         message.l_vel_y.value = 0
         message.a_vel.value = 0
-        message.color.value = "Red"
+        message.color.value = 1
         game_client._client.send_message(message)
-        game = Main_Window(Game.WIDTH, Game.HEIGHT) 
+        game = Main_Window(Game.WIDTH, Game.HEIGHT, game_client.cl_id) 
         game_client._client.OnMessage += game.message_handler
     def on_connect_rejected(self,  args):
         print("Error connecting") 
@@ -336,3 +320,9 @@ if __name__ == '__main__':
     net_thread = threading.Thread(target=game_client.go)
     net_thread.start()
     pyglet.app.run()
+
+
+
+
+
+
