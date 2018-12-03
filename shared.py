@@ -28,8 +28,9 @@ from math import sin
 from math import cos
 from math import radians
 
-UPDATE_RATE = 1/60
-UPDATES_PER_SECOND = 1.0 / UPDATE_RATE
+UPDATES_PER_SECOND = 60
+UPDATE_RATE = 1.0 / UPDATES_PER_SECOND
+
 PORT = 27806
 
 class TankCreate(legume.messages.BaseMessage):
@@ -263,10 +264,10 @@ class SharedTank:
         clock.schedule_once(reload, 2, self.idn)
         
     def move(self, direction = Direction.FORWARD):
-        if not self.moving:
+        if not self.moving and self.alive:
             self.moving = True
         #print("server v,angle", self.body.velocity, degrees(self.body.angle))
-        self.body.velocity = (direction*SharedTank.SPEED*sin(self.body.angle),direction*SharedTank.SPEED*cos(self.body.angle))
+            self.body.velocity = (direction*SharedTank.SPEED*sin(self.body.angle),direction*SharedTank.SPEED*cos(self.body.angle))
         #print("server v,angle after", self.body.velocity, degrees(self.body.angle))
     def stop(self):
         if self.moving:
@@ -275,9 +276,9 @@ class SharedTank:
     def rotate(self, direction = Direction.RIGHT):
         if not self.moving:
             pass
-        if not self.rotating:
+        if not self.rotating and self.alive:
             self.rotating = True
-        self.body.angular_velocity = 1*direction
+            self.body.angular_velocity = 1*direction
     def stopRotating(self):
         if not self.moving:
             pass
@@ -285,8 +286,9 @@ class SharedTank:
             self.rotating = False
         self.body.angular_velocity = 0
     def rotateTurret(self, direction):
+        if self.alive:
         #self.barrelBody.angular_velocity = Tank.BARREL_SPEED*direction
-        self.barrelSprite.angular_velocity = SharedTank.BARREL_SPEED*direction
+            self.barrelSprite.angular_velocity = SharedTank.BARREL_SPEED*direction
     def stopRotateTurret(self):
         #self.barrelBody.angular_velocity = 0
         self.barrelSprite.angular_velocity = 0

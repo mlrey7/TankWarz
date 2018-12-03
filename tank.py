@@ -148,6 +148,11 @@ class Tank:
         self.poly.body = self.body
         self.body.position = pos
 
+        self.destroyed_img = pyglet.image.load("res/PNG/tanks/Destroyed/%s.png" % color.value)
+        self.destroyed_img.anchor_x = self.destroyed_img.width // 2 
+        self.destroyed_img.anchor_y = self.destroyed_img.height // 2 
+        self.burning_sprite = None
+        
         # points = [(0,0),(0,58),(24,58),(24,0)]
         # #self.barrelPoly = pymunk.Poly(None, points, transform=(0,0))
         # self.barrelPoly = pymunk.Poly.create_box(None, size=(58,24), radius=0.1)
@@ -211,8 +216,8 @@ class Tank:
         smoke_sprite.scale = Tank.SCALE
         smoke_sprite.rotation = self.barrelSprite.rotation
         
-        Tank.firing_sound.play()
-        Tank.reloading_sound.play()
+        # Tank.firing_sound.play()
+        # Tank.reloading_sound.play()
         self.isReloading = True
 
         global effect_count
@@ -229,41 +234,43 @@ class Tank:
         clock.schedule_once(reload, 2, self.idn)
         
     def move(self, direction = Direction.FORWARD):
-        if not self.moving:
+        if not self.moving and self.alive:
             Tank.sound_player.play()
             self.sprite.image = self.anim
             self.moving = True
-        self.body.velocity = (direction*Tank.SPEED*sin(self.body.angle),direction*Tank.SPEED*cos(self.body.angle))
+            self.body.velocity = (direction*Tank.SPEED*sin(self.body.angle),direction*Tank.SPEED*cos(self.body.angle))
         #print("client v,angle", self.body.velocity, degrees(self.body.angle))
     def stop(self):
-        if self.moving:
+        if self.moving and self.alive:
             Tank.sound_player.pause()
             self.sprite.image = self.img
             self.moving = False
-        self.body.velocity = (0,0)
+            self.body.velocity = (0,0)
     def rotate(self, direction = Direction.RIGHT):
-        if not self.moving:
+        if not self.moving and self.alive:
             Tank.sound_player.play()
         if not self.rotating:
             self.rotating = True
-        self.body.angular_velocity = 1*direction
+            self.body.angular_velocity = 1*direction
     def stopRotating(self):
         if not self.moving:
             Tank.sound_player.pause()
         if self.rotating:
             self.rotating = False
-        self.body.angular_velocity = 0
+            self.body.angular_velocity = 0
     def rotateTurret(self, direction):
+        if self.alive:
         #self.barrelBody.angular_velocity = Tank.BARREL_SPEED*direction
-        self.barrelSprite.angular_velocity = Tank.BARREL_SPEED*direction
+            self.barrelSprite.angular_velocity = Tank.BARREL_SPEED*direction
     def stopRotateTurret(self):
         #self.barrelBody.angular_velocity = 0
         self.barrelSprite.angular_velocity = 0
     def destroy(self):
         self.alive = False
+        print("destroyed")
         explosion_images = []
-        for i in range(1,10):
-            image = pyglet.image.load("res/PNG/Smoke/explosion/explosion%s.png" % (i))
+        for i in range(1,11):
+            image = pyglet.image.load("res/PNG/Tanks/Flame/Explode/%s.png" % (i))
             explosion_images.append(image)
         for i in range(len(explosion_images)):
             explosion_images[i].anchor_x = explosion_images[i].width // 2 
@@ -278,9 +285,22 @@ class Tank:
         explosion_sprite.idn = effect_count
         effects[effect_count] = explosion_sprite
 
+        burning_images = []
+        for i in range(1,5):
+            image = pyglet.image.load("res/PNG/Tanks/Flame/Loop/%s.png" % (i))
+            burning_images.append(image)
+        for i in range(len(burning_images)):
+            burning_images[i].anchor_x = burning_images[i].width // 2 
+            burning_images[i].anchor_y = burning_images[i].height // 2 
+        burning_anim = pyglet.image.Animation.from_image_sequence(burning_images, 0.16, True)
+        
+        self.burning_sprite = pyglet.sprite.Sprite(burning_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=explosion_group)
+        self.burning_sprite.scale = Tank.SCALE
+        self.sprite.image = self.destroyed_img
         def explosion_s(self):
             effects[explosion_sprite.idn].delete()
             effects.pop(explosion_sprite.idn)
+            
         clock.schedule_once(explosion_s, 1)
 
     def hit(self, damage):

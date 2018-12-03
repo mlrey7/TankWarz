@@ -107,6 +107,7 @@ class Game_Client2:
         self.running = False
         self.started = False
         self.connected = False
+        self.alive = False
         self.tank = None
         self.switch_sound = pyglet.media.load("res/sounds/switch28.wav", streaming=False)
         self.bg_sound = pyglet.media.load("res/music/bgmusic2.wav", streaming=True)
@@ -233,8 +234,8 @@ class Game_Client2:
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.TURRET_ROTATE_LEFT
         try:
-            #self._client.send_message(msg)
-            raise legume.exceptions.ClientError
+            self._client.send_message(msg)
+            #raise legume.exceptions.ClientError
         except legume.exceptions.ClientError:
             self.connected = False
             while self._client.errored or self._client.disconnected:
@@ -316,6 +317,8 @@ class Game_Client2:
         msg.id.value = self.cl_id
         msg.projectile_id.value = int(time.time())
         self._client.send_message(msg)
+        Tank.firing_sound.play()
+        Tank.reloading_sound.play()
         #self._client.send_reliable_message(self.tank.get_message())
 
     def update(self, dt):
@@ -391,6 +394,9 @@ class Game_Client2:
                 #tank.fire()
             elif command == Tank.Command.DESTROY:
                 tank.destroy()
+                if tank.idn == self.tank.idn:
+                    self.alive = False
+                    print("Game Over")
             # elif command == Tank.Command.HIT:
             #     tank.hit()
             else:
