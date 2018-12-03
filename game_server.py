@@ -87,10 +87,11 @@ class Game_Server:
             self.server.send_message_to_all(message)
         elif legume.messages.message_factory.is_a(message, 'TankFire'):
             tank = tanks[message.id.value]
-            tank.fire(message.projectile_id.value) #TBD
+            tank.fire(message.projectile_id.value) 
             msg = TankFireClient()
             msg.id.value = message.id.value
             msg.projectile_id.value = message.projectile_id.value
+            print("server fire")
             self.server.send_message_to_all(msg)
         elif legume.messages.message_factory.is_a(message, 'ProjectileCreate'):
             projectiles[message.id.value] = Projectile.create_from_message(message)

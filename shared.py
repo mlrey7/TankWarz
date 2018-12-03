@@ -43,7 +43,8 @@ class TankCreate(legume.messages.BaseMessage):
         'l_vel_x' : 'float',
         'l_vel_y' : 'float',
         'a_vel' : 'float',
-        'color' : 'int'}
+        'color' : 'int',
+        'alive' : 'bool'}
 
 class TankUpdate(legume.messages.BaseMessage):
     MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+2
@@ -57,7 +58,8 @@ class TankUpdate(legume.messages.BaseMessage):
         'a_vel' : 'float',
         'turret_rot' : 'float',
         'turret_vel' : 'float',
-        'color' : 'int'}
+        'color' : 'int',
+        'alive' : 'bool'}
 
 class TankCommand(legume.messages.BaseMessage):
     MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+3
@@ -267,6 +269,7 @@ class SharedTank:
         if not self.moving and self.alive:
             self.moving = True
         #print("server v,angle", self.body.velocity, degrees(self.body.angle))
+        if self.alive:
             self.body.velocity = (direction*SharedTank.SPEED*sin(self.body.angle),direction*SharedTank.SPEED*cos(self.body.angle))
         #print("server v,angle after", self.body.velocity, degrees(self.body.angle))
     def stop(self):
@@ -278,6 +281,7 @@ class SharedTank:
             pass
         if not self.rotating and self.alive:
             self.rotating = True
+        if self.alive:
             self.body.angular_velocity = 1*direction
     def stopRotating(self):
         if not self.moving:
@@ -316,6 +320,7 @@ class SharedTank:
         #self.body.angle = message.rot.value
         self.body.angular_velocity = message.a_vel.value
         self.barrelSprite.angular_velocity = message.turret_vel.value
+        #self.alive = message.alive.value
          
     
     def get_message(self):
@@ -330,7 +335,7 @@ class SharedTank:
         message.color.value = Color.to_int(self.color)
         message.turret_rot.value = self.barrelSprite.rotation
         message.turret_vel.value = self.barrelSprite.angular_velocity
-        
+        message.alive.value = self.alive
         return message
 
 

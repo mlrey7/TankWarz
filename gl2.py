@@ -2,7 +2,7 @@ import pyglet
 import pymunk
 import legume
 import time
-import threading
+import glooey
 from shared import *
 from pyglet.window import key
 from pyglet import clock
@@ -13,6 +13,7 @@ from global_vars import tanks
 from global_vars import bg_batch
 from global_vars import fg_batch
 from global_vars import hud_batch
+from global_vars import gui_batch
 from global_vars import keys
 from global_vars import projectiles
 from global_vars import host
@@ -34,6 +35,37 @@ from camera import Camera
 import collision_handler
 from pyglet.gl import Config
 
+
+class TitleLabel(glooey.Label):
+    custom_font_name = 'Arial'
+    custom_font_size = 50
+    custom_color = '#ffffff'
+    custom_alignment = 'center'
+class TitleScreen_Grid(glooey.VBox):
+    custom_alignment = 'fill'
+class TitleScreen_Button(glooey.Button):
+    class Label(glooey.Label):
+        custom_font_name = 'Arial'
+        custom_font_size = 25
+        custom_color = '#ffffff'
+        custom_alignment = 'center'
+class Start_Button(TitleScreen_Button):
+    def __init__(self, text, client):
+        super().__init__(text)
+        self.client = client
+        #self.vbox = vbox
+    def on_click(self, widget):
+        print("wubba lubba dub dub")
+        self.client.connect(host)
+        #self.root.remove(self.root)
+        
+        
+#     class Base(glooey.Image):
+#         custom_image = pyglet.resource.image('base.png')
+#     class Over(glooey.Image):
+#         custom_image = pyglet.resource.image('over.png')
+#     class Down(glooey.Image):
+#         custom_image = pyglet.resource.image('down.png')
 class Main_Window2(pyglet.window.Window):
     def __init__(self, width, height):
         conf = Config(sample_buffers=1,
@@ -42,9 +74,37 @@ class Main_Window2(pyglet.window.Window):
                       double_buffer=True)
         super(Main_Window2, self).__init__(Game.WIDTH, Game.HEIGHT, config=conf)
         self.cl_id = int(time.time())
-        self.client = Game_Client2(width, height, self.cl_id)
-        self.client.connect(host)
+        
+        #self.client.connect(host)
         self.push_handlers(keys)
+
+        self.gui = glooey.Gui(self, gui_batch)
+        stack = glooey.Stack()
+        stack.custom_alignment = 'fill'
+        self.client = Game_Client2(width, height, self.cl_id, self.gui, stack)
+        
+        bg = glooey.Image(pyglet.image.load("res/PNG/GUI/Menu.png"))
+        #self.bg_image = pyglet.image.load("res/PNG/GUI/Menu.png")
+        #self.bg_sprite = pyglet.image.Sprite(self.bg_image, 0, 0, gui_batch)
+        bg.custom_alignment = 'fill'
+        stack.add(bg)
+        board = glooey.Board()
+        board.custom_alignment = 'fill'
+        
+        vbox = TitleScreen_Grid()
+        vbox.alignment = 'right'
+        vbox.right_padding = 150
+        title = TitleLabel("TANK WARZ")
+        vbox.add(title)
+        #vbox.custom_right_padding = 20
+        stack.add(vbox)
+        #board.add(vbox, (853, 350))
+        self.gui.add(stack)
+        start_button = Start_Button("START", self.client)
+        exit_button = TitleScreen_Button("EXIT")
+        vbox.add(start_button)
+        vbox.add(exit_button)
+        #start_button.push_handlers(self.on_click_start)
         self.ping = pyglet.text.HTMLLabel(
             '<font face="Arial" size="13" color="white"><b>latency: %3.3f ms fps:%3.3f</b></font>' % (self.client._client.latency, pyglet.clock.get_fps()),
             x=self.width-130, y=self.height-12,
@@ -75,6 +135,7 @@ class Main_Window2(pyglet.window.Window):
             #     p.update(dtt)
             #print("client v,angle", self.client.tank.body.velocity, degrees(self.client.tank.body.angle))
             self.get_input()
+        gui_batch.draw()
 
     def get_input(self):
         if keys[key._1]:
@@ -103,11 +164,12 @@ class Main_Window2(pyglet.window.Window):
             self.client.fire()
 
 class Game_Client2:
-    def __init__(self, width, height, cl_id):
+    def __init__(self, width, height, cl_id, gui, stack):
         self.running = False
         self.started = False
         self.connected = False
-        self.alive = False
+        self.alive = True
+        
         self.tank = None
         self.switch_sound = pyglet.media.load("res/sounds/switch28.wav", streaming=False)
         self.bg_sound = pyglet.media.load("res/music/bgmusic2.wav", streaming=True)
@@ -125,9 +187,10 @@ class Game_Client2:
         self.camera = None
 
         self.cl_id = cl_id
-        
+        self.gui = gui
+        self.stack = stack
         self._client = legume.Client()
-        self.lock = threading.Lock()
+        #self.lock = threading.Lock()
         self._client.OnMessage += self.message_handler
         self._client.OnConnectRequestAccepted += self.on_connect_accepted
         self._client.OnConnectRequestRejected += self.on_connect_rejected
@@ -152,11 +215,15 @@ class Game_Client2:
             self.started = True
 
     def on_connect_rejected(self,args):
+        #self.connect(host)
         print("Connection Rejected")
     def on_disconnect(self, sender, args):
         print("You have been disconnected")
     def on_connection_error(self, sender, error_message):
         print(error_message)
+        print("Attempting to reconnect")
+        #self.connect(host)
+        
     def start_game(self):
         print("STARTGAME")
 
@@ -175,6 +242,7 @@ class Game_Client2:
 
         pyglet.clock.schedule_interval(self.update, 1.0/60)
         self.running = True
+        self.gui.remove(self.stack)
 
     def update_camera_player(self):
         self.camera.left = self.tank.sprite.position[0] - 640
@@ -209,7 +277,7 @@ class Game_Client2:
             msg = TankSwitchAmmo()
             msg.id.value = self.tank.idn
             msg.ammo_type.value = self.tank.ammo_type
-            self._client.send_reliable_message(msg)
+            self.send_reliable_message_safely(msg)
 
     def switch2(self):
         if self.tank.ammo_type == Projectile.Ammo_Type.REGULAR:
@@ -226,101 +294,98 @@ class Game_Client2:
             msg = TankSwitchAmmo()
             msg.id.value = self.tank.idn
             msg.ammo_type.value = self.tank.ammo_type
-            self._client.send_reliable_message(msg)
+            self.send_reliable_message_safely(msg)
 
     def rotate_left_turret(self):
         self.tank.rotateTurret(Direction.LEFT)  
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.TURRET_ROTATE_LEFT
-        try:
-            self._client.send_message(msg)
-            #raise legume.exceptions.ClientError
-        except legume.exceptions.ClientError:
-            self.connected = False
-            while self._client.errored or self._client.disconnected:
-                self.connect()
-            self._client.send_message(msg)
+        self.send_message_safely(msg)
     def rotate_right_turret(self):
         self.tank.rotateTurret(Direction.RIGHT)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.TURRET_ROTATE_RIGHT
-        self._client.send_reliable_message(msg)
-        #print("client send message rotate right")
+        self.send_message_safely(msg)
     def stop_rotate_turret(self):
         self.tank.stopRotateTurret()
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.STOP_ROTATING_TURRET
-        self._client.send_message(msg)
+        self.send_message_safely(msg)
     def move_forward(self):
         #if self.tank.moving == False:
         self.tank.move(Direction.FORWARD)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.MOVE_FORWARD
-        self._client.send_message(msg)
-        #self._client.send_message(self.tank.get_message())
+        self.send_message_safely(msg)
     def move_backward(self):
         #if self.tank.moving == False:
         self.tank.move(Direction.BACKWARD)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.MOVE_BACKWARD
-        self._client.send_message(msg)
-        #self._client.send_message(self.tank.get_message())
+        self.send_message_safely(msg)
     def stop(self):
         #if self.tank.moving == True:
         self.tank.stop()
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.STOP_MOVING
-        self._client.send_message(msg)
-        #self._client.send_message(self.tank.get_message())
+        self.send_message_safely(msg)
     def rotate_right(self):
         self.tank.rotate(Direction.RIGHT)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.ROTATE_RIGHT
-        self._client.send_message(msg)
-        #self._client.send_message(self.tank.get_message())
+        self.send_message_safely(msg)
     def rotate_left(self):
         self.tank.rotate(Direction.LEFT)
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.ROTATE_LEFT
-        self._client.send_message(msg)
-        #self._client.send_message(self.tank.get_message())
+        self.send_message_safely(msg)
     def stop_rotate(self):
         self.tank.stopRotating()
         msg = TankCommand()
         msg.id.value = self.cl_id
         msg.command.value = Tank.Command.STOP_ROTATING
-        self._client.send_message(msg)
-        #self._client.send_message(self.tank.get_message())
+        self.send_message_safely(msg)
     def fire(self):
-        #self.tank.fire()
-        # p = ProjectileCreate()
-        # p.id.value = int(time.time())
-        # p.src_id.value = self.tank.idn
-        # p.pos_x.value = self.tank.position[0]
-        # p.pos_y.value = self.tank.position[1]
-        # p.rot.value = radians(self.tank.barrelSprite.rotation)
-        # p.type.value = self.tank.ammo_type
-        # p.color.value = Color.to_int(self.tank.color)
-
-        # self._client.send_message(p)
-
-        self.hud.update(self.tank.ammo1, self.tank.ammo2)
+        #self.hud.update(self.tank.ammo1, self.tank.ammo2)
+        
+        print("client fire")
+        if self.tank.isReloading:
+            print("RELOADING EH")
+            return
+        self.tank.reloading = True
         msg = TankFire()
         msg.id.value = self.cl_id
         msg.projectile_id.value = int(time.time())
-        self._client.send_message(msg)
+        self.tank.fire(msg.projectile_id.value)
+        self.send_message_safely(msg)
+        if self.tank.ammo_type == Projectile.Ammo_Type.REGULAR and self.tank.ammo1 <= 0 or self.tank.ammo_type == Projectile.Ammo_Type.AP and self.tank.ammo2 <= 0:
+            return
         Tank.firing_sound.play()
         Tank.reloading_sound.play()
+        self.hud.update(self.tank.ammo1, self.tank.ammo2)
         #self._client.send_reliable_message(self.tank.get_message())
-
+    def send_message_safely(self, msg):
+        try:
+            self._client.send_message(msg)
+        except legume.exceptions.ClientError:
+            self.connected = False
+            if self._client.connected:
+                self._client.send_message(msg)
+    def send_reliable_message_safely(self, msg):
+        try:
+            self._client.send_message(msg)
+        except legume.exceptions.ClientError:
+            self.connected = False
+            if self._client.connected:
+                self._client.send_reliable_message(msg)
     def update(self, dt):
         dtt = 1.0/60.0
         space.step(dtt)
@@ -349,7 +414,8 @@ class Game_Client2:
         
         elif legume.messages.message_factory.is_a(message, 'TankFireClient'):
             tank = tanks[message.id.value]
-            tank.fire(message.projectile_id.value)
+            if tank.idn != self.tank.idn:
+                tank.fire(message.projectile_id.value)
         elif legume.messages.message_factory.is_a(message, 'TankSwitchAmmo'):
             tank = tanks[message.id.value]
             tank.ammo_type = message.ammo_type.value
@@ -358,6 +424,19 @@ class Game_Client2:
             projectile = projectiles.get(message.projectile_id.value)
             if projectile is not None:
                 tank.hit(projectile.damage)
+                print(self.tank.alive)
+                if tank.idn == self.tank.idn and not self.tank.alive:
+                    print("Game Over")
+                    bg = glooey.Background()
+                    bg.image = pyglet.image.load("res/PNG/GUI/overlay.png")
+                    bg.custom_alignment = 'fill'
+                    self.gui.add(bg)
+                    vbox = TitleScreen_Grid()
+                    game_over_label = TitleLabel("Game Over!")
+                    retry_button = TitleScreen_Button('Retry')
+                    vbox.add(game_over_label)
+                    vbox.add(retry_button)
+                    self.gui.add(vbox)
                 projectile.destroy()
                 projectiles.pop(projectile.idn)
 
@@ -394,9 +473,7 @@ class Game_Client2:
                 #tank.fire()
             elif command == Tank.Command.DESTROY:
                 tank.destroy()
-                if tank.idn == self.tank.idn:
-                    self.alive = False
-                    print("Game Over")
+                
             # elif command == Tank.Command.HIT:
             #     tank.hit()
             else:
@@ -427,9 +504,9 @@ class Game_Client2:
 
     def send_update(self):
         if self.tank is not None:
-            self._client.send_message(self.tank.get_message())
+            self.client.send_message_safely(self.tank.get_message())
         for projectile in projectiles.values():
-            self._client.send_message(projectile.get_message())
+            self.client.send_message_safely(projectile.get_message())
         
     def go(self, args):
         try:

@@ -1,6 +1,7 @@
 from enum import Enum
 from enum import IntEnum
 
+
 class Game(IntEnum):
     WIDTH = 1280
     HEIGHT = 700
