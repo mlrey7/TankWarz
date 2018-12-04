@@ -37,5 +37,7 @@ class Coll_Type(IntEnum):
     TANK = 1
     PROJECTILE = 2
     ENVIRONMENT = 3
+    CRATE = 4
+    AMMO = 5
 
 

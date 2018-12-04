@@ -19,29 +19,52 @@ class Game_Map:
     def __init__(self, map_matrix):
         self.map_matrix = map_matrix
         self.sprite_matrix = []
+        #self.crate_list = crate_list
         for x in range(len(self.map_matrix)):
             for y in range(len(self.map_matrix[0])):
                 if self.map_matrix[x][y].tile_type == Tile.Type.GRASS:
                     sprite = pyglet.sprite.Sprite(Game_Map.grass_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.2
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.DIRT:
                     sprite = pyglet.sprite.Sprite(Game_Map.dirt_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite) 
+                    # factor = 0.1
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.SAND:
                     sprite = pyglet.sprite.Sprite(Game_Map.sand_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.0
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.TEMPERATE:
                     sprite = pyglet.sprite.Sprite(Game_Map.temperate_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.15
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.SHRUB:
                     sprite = pyglet.sprite.Sprite(Game_Map.shrub_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.07
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.DARKSAND:
                     sprite = pyglet.sprite.Sprite(Game_Map.darkSand_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.0
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.WATER:
                     sprite = pyglet.sprite.Sprite(Game_Map.water_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.0
+                    # self.generate_tree(factor)
+
+    def generate_tree(self, factor):
+        threshold = 0.30
+        prob = (random.random() / 4) + factor
+        if prob >= threshold:
+            posx = random.randint(x*Game_Map.grass_img.width, x*Game_Map.grass_img.width + Game_Map.grass_img.width)
+            posy = random.randint(x*Game_Map.grass_img.width, x*Game_Map.grass_img.width + Game_Map.grass_img.width)
+            self.trees.append((posx, posy))
     def generate_map(width, height, seed_a, seed_b):
         rng1 = random.Random()
         rng1.seed(seed_a)
@@ -111,7 +134,22 @@ class Game_Map:
             if (m < 0.66): 
                 return Tile.Type.GRASS
             return Tile.Type.DIRT
+        # def generate_crates(value):
+        #     R = 7
+        #     crates = []
+        #     for xc in range(width):
+        #         for yc in range(height):
+        #             max = 0
+        #             for xn in range(xc-R, xc+R+1):
+        #                 for yn in range(yc-R, yc+R+1):
+        #                     e = value[xn][yn][0]
+        #                     if e > max:
+        #                         max = e
+        #             if value[xc][yc] == max:
+        #                 crates.append((xc,yc))
+        #     return crates
         map = generate_values()
+        #crate_list = generate_crates(map)
         for x in range(width):
             for y in range(height):
                 map[x][y] = Tile(biome(*map[x][y]))

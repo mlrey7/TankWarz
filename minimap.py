@@ -91,8 +91,9 @@ class Minimap:
                     self.sprite_matrix.append(sprite)
     def update(self):
         for tank in tanks.values():
-            rect = Rectangle(10 + (tank.sprite.position[0] * self.factorx), 10 + (tank.sprite.position[1]* self.factory), 5, 5, (255,0,0,255))
-            rect.draw()
+            if tank.alive:
+                rect = Rectangle(10 + (tank.sprite.position[0] * self.factorx), 10 + (tank.sprite.position[1]* self.factory), 5, 5, (255,0,0,255))
+                rect.draw()
         for projectile in projectiles.values():
             rect = Rectangle(10 + (projectile.sprite.position[0] * self.factorx), 10 + (projectile.sprite.position[1]* self.factory), 4, 4, (40,40,40,255))
             rect.draw()

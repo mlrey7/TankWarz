@@ -3,6 +3,8 @@ import pymunk
 import legume
 import time
 import threading
+import operator
+import logging
 
 from pyglet.window import key
 from pyglet import clock
@@ -18,23 +20,52 @@ from game_map import Game_Map
 import collision_handler
 from shared import *
 from server_global_vars import *
+import server_global_vars
 
 class Game_Server:
     def __init__(self, width, height, seed_a, seed_b):
+        self.logger = logging.getLogger('Server')
+        hdlr = logging.FileHandler('tankwarz_server.log')
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        hdlr.setFormatter(formatter)
+        self.logger.addHandler(hdlr) 
+        self.logger.setLevel(logging.INFO)
+
         self.server = legume.Server()
         self.server.OnConnectRequest += self.join_request_handler
         self.server.OnMessage += self.message_handler
         self.update_timer = time.time()
         self.seed_a = seed_a
         self.seed_b = seed_b
-        
-        collision_handler.Server_Collision_Handler.initialize_handler(space, tanks, projectiles, self.server)
-
+        self.lock = threading.Lock()
+        collision_handler.Server_Collision_Handler.initialize_handler(space, tanks, projectiles, self)
+        self.game_clients_scores = {}
         create_walls()
-
+        self.initial_time = 0
+        self.time_running = False
         pyglet.clock.schedule_interval(self.update, 1.0/60)
-        print("Server Initialized")
+        self.game_over = False
+        self.logger.info('Server Initialized')
 
+    def start_timer(self):
+        self.initial_time = time.time()
+        pyglet.clock.schedule_interval(self.update_time, 1.0)
+        self.time_running = True
+    def update_time(self, dt):
+        elapsed_time = time.time() - self.initial_time
+        rem_time = server_global_vars.game_length - elapsed_time
+        if rem_time <= 0 and not self.game_over:
+            msg = GameOver()
+            sorted_d = sorted(self.game_clients_scores.items(), key=operator.itemgetter(1))
+            msg.winner_id.value = sorted_d[-1][0]
+            msg.score.value = sorted_d[-1][1]
+            self.game_over = True
+            self.server.send_reliable_message_to_all(msg)
+        else:
+            time_text = time.strftime("%M:%S", time.gmtime(rem_time))
+            msg = UpdateTime()
+            msg.time.value = time_text
+            self.server.send_reliable_message_to_all(msg)
     def update(self, dt):
         dtt = 1.0/60.0
         space.step(dtt)
@@ -45,7 +76,9 @@ class Game_Server:
         #self._send_update()
     def message_handler(self, sender, message):
         if legume.messages.message_factory.is_a(message, 'TankCreate'):
-            print("Server Tank has been created")
+            self.logger.info("A server Tank has been created")
+            if not self.time_running:
+                self.start_timer()
             tanks[message.id.value] = SharedTank.create_from_message(message)
         elif legume.messages.message_factory.is_a(message, 'TankUpdate'):
             tanks[message.id.value].update_from_message(message)
@@ -91,7 +124,6 @@ class Game_Server:
             msg = TankFireClient()
             msg.id.value = message.id.value
             msg.projectile_id.value = message.projectile_id.value
-            print("server fire")
             self.server.send_message_to_all(msg)
         elif legume.messages.message_factory.is_a(message, 'ProjectileCreate'):
             projectiles[message.id.value] = Projectile.create_from_message(message)
@@ -99,6 +131,8 @@ class Game_Server:
             projectiles[message.id.value].update_from_message(message)
         elif legume.messages.message_factory.is_a(message, 'MapCreate'):
             pass
+        elif legume.messages.message_factory.is_a(message, 'ClientStart'):
+            self.game_clients_scores.setdefault(message.client_id.value, 0)
         else:
             pass
             #print('Message: %s' % message)
@@ -111,7 +145,7 @@ class Game_Server:
 
     def go(self):
         self.server.listen(('', PORT))
-        print('Listening on port %d' % PORT)
+        self.logger.info('Listening on port %d' % PORT)
 
         while True:
             # Physics stuff
@@ -124,11 +158,15 @@ class Game_Server:
             time.sleep(0.0001)
     
     def send_updates(self, server):
-        for tank in tanks.values():
-            server.send_message_to_all(tank.get_message())
-        for projectile in projectiles.values():
-            server.send_message_to_all(projectile.get_message())
-        
+        self.lock.acquire()
+        try:
+            for tank in tanks.values():
+                server.send_message_to_all(tank.get_message())
+            for projectile in projectiles.values():
+                server.send_message_to_all(projectile.get_message())
+        finally:
+            self.lock.release()
+            
 
     def send_initial_state(self, endpoint):
         print("Connected to:", endpoint)
@@ -138,11 +176,15 @@ class Game_Server:
         map_message.seed_a.value = int(self.seed_a)
         map_message.seed_b.value = int(self.seed_b)
         endpoint.send_message(map_message)
-        for tank in tanks.values():
-            print("NICE SEND ENDPOINT BOI")
-            endpoint.send_message(tank.get_message())
-        for projectile in projectiles.values():
-            endpoint.send_message(projectile.get_message())
+        self.lock.acquire()
+        try:
+            for tank in tanks.values():
+                print("NICE SEND ENDPOINT BOI")
+                endpoint.send_message(tank.get_message())
+            for projectile in projectiles.values():
+                endpoint.send_message(projectile.get_message())
+        finally:
+            self.lock.release()
 
 def create_walls():
     wall1_poly = pymunk.Poly.create_box(None, size=(10,full_height * 1.1))

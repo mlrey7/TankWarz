@@ -17,9 +17,10 @@ class Projectile:
     SCALE = 0.65
     HEIGHT = 34 * SCALE
     WIDTH = 20 * SCALE
-    def __init__(self, pos = (0,0), color=Color.RED, idn=0, src_idn = 0, type=Ammo_Type.REGULAR):
+    def __init__(self, pos = (0,0), color=Color.RED, idn=0, src_idn = 0, client_id = 0, type=Ammo_Type.REGULAR):
         self.idn = idn
         self.src_idn = src_idn
+        self.CLIENT_ID = client_id
         self.type = type
         self.damage = 10
         self.velocity = 1000.0
@@ -55,14 +56,14 @@ class Projectile:
         self.sprite = None
         space.remove(self.poly,self.body)
 
-    def create_from_message(message):
-        idn = message.id.value
-        src_id = message.src_id.value
-        position = message.pos_x.value, message.pos_y.value
-        rotation = message.rot.value
-        projectile_type = message.type.value
-        color = Color.from_int[message.color.value]
-        return Projectile(position, color, idn, src_id)
+    # def create_from_message(message):
+    #     idn = message.id.value
+    #     src_id = message.src_id.value
+    #     position = message.pos_x.value, message.pos_y.value
+    #     rotation = message.rot.value
+    #     projectile_type = message.type.value
+    #     color = Color.from_int[message.color.value]
+    #     return Projectile(position, color, idn, src_id)
 
     def update_from_message(self, message):
         self.body.position = message.pos_x.value, message.pos_y.value
@@ -75,13 +76,15 @@ class Projectile:
         rotation = message.rot.value
         projectile_type = message.type.value
         color = Color.from_int(message.color.value)
-        return Projectile(position, color, idn, src_id, projectile_type)
+        client_id = message.client_id.value
+        return Projectile(position, color, idn, src_id, client_id, projectile_type)
 
     def update_from_message(self, message):
         self.body.position = message.pos_x.value, message.pos_y.value
         self.body.angle = message.rot.value
         self.type = message.type.value
         self.color = Color.from_int(message.color.value)
+        self.CLIENT_ID = message.client_id.value
 
     def get_message(self):
         message = shared.ProjectileUpdate()
@@ -94,4 +97,5 @@ class Projectile:
         message.l_vel_x.value = self.body.velocity[0]
         message.l_vel_y.value = self.body.velocity[1]
         message.rot.value = self.body.angle
+        message.client_id.value = self.CLIENT_ID
         return message

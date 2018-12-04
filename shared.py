@@ -31,12 +31,13 @@ from math import radians
 UPDATES_PER_SECOND = 60
 UPDATE_RATE = 1.0 / UPDATES_PER_SECOND
 
-PORT = 27806
+
 
 class TankCreate(legume.messages.BaseMessage):
     MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+1
     MessageValues = {
         'id' : 'int',
+        'client_id' : 'int',
         'pos_x' : 'float',
         'pos_y' : 'float',
         'rot' : 'float',
@@ -50,6 +51,7 @@ class TankUpdate(legume.messages.BaseMessage):
     MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+2
     MessageValues = {
         'id' : 'int',
+        'client_id' : 'int',
         'pos_x' : 'float',
         'pos_y' : 'float',
         'rot' : 'float',
@@ -80,6 +82,7 @@ class ProjectileCreate(legume.messages.BaseMessage):
     MessageValues = {
         'id' : 'int',
         'src_id' : 'int',
+        'client_id' : 'int',
         'pos_x' : 'float',
         'pos_y' : 'float',
         'rot' : 'float',
@@ -119,6 +122,7 @@ class ProjectileUpdate(legume.messages.BaseMessage):
     MessageValues = {
         'id' : 'int',
         'src_id' : 'int',
+        'client_id' : 'int',
         'pos_x' : 'float',
         'pos_y' : 'float',
         'rot' : 'float',
@@ -134,7 +138,19 @@ class MapCreate(legume.messages.BaseMessage):
         'w' : 'int',
         'seed_a' : 'int',
         'seed_b' : 'int'}
-
+class GameOver(legume.messages.BaseMessage):
+    MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+36
+    MessageValues = {
+        'winner_id' : 'int',
+        'score' : 'int'}
+class ClientStart(legume.messages.BaseMessage):
+    MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+35
+    MessageValues = {
+        'client_id' : 'int'}    
+class UpdateTime(legume.messages.BaseMessage):
+    MessageTypeID = legume.messages.BASE_MESSAGETYPEID_USER+37
+    MessageValues = {
+        'time' : 'string 10'}
 legume.messages.message_factory.add(TankCreate)
 legume.messages.message_factory.add(TankUpdate)
 legume.messages.message_factory.add(TankCommand)
@@ -147,7 +163,9 @@ legume.messages.message_factory.add(TankFireClient)
 legume.messages.message_factory.add(TankHit)
 legume.messages.message_factory.add(ProjectileDestroy)
 legume.messages.message_factory.add(TankSwitchAmmo)
-
+legume.messages.message_factory.add(ClientStart)
+legume.messages.message_factory.add(GameOver)
+legume.messages.message_factory.add(UpdateTime)
 
 class FakeSprite:
     def __init__(self, pos=(0,0)):
@@ -198,7 +216,7 @@ class SharedTank:
             
             }
         
-    def __init__(self, pos = (0, 0), color=Color.RED, idn=0):
+    def __init__(self, pos = (0, 0), color=Color.RED, idn=0, client_id=0):
         self.alive = True
         self.hp = 100
         self.ammo1 = 40
@@ -208,6 +226,7 @@ class SharedTank:
         self.rotating = False
         self.moving = False
         self.idn = idn
+        self.CLIENT_ID = client_id
         self.ammo_type = SharedProjectile.Ammo_Type.REGULAR
         self.command = SharedTank.Command.NOTHING
         self.poly = pymunk.Poly.create_box(None, size=(SharedTank.HEIGHT,SharedTank.WIDTH), radius=0.1)
@@ -253,7 +272,7 @@ class SharedTank:
         posx = self.body.position[0] + (sin(radians(self.barrelSprite.rotation)) * 50)
         posy = self.body.position[1] + (cos(radians(self.barrelSprite.rotation)) * 50)
         global projectile_count
-        p = SharedProjectile(pos=(posx, posy), color=self.color, idn=projectile_id,src_idn=self.idn, type=self.ammo_type)
+        p = SharedProjectile(pos=(posx, posy), color=self.color, idn=projectile_id,src_idn=self.idn, client_id=self.CLIENT_ID, type=self.ammo_type)
         p.body.velocity = (p.velocity*sin(radians(self.barrelSprite.rotation)),p.velocity*cos(radians(self.barrelSprite.rotation)))
         p.body.angle = radians(self.barrelSprite.rotation)
         #print("projectile at start server: ",p.body.angle, "id:", p.idn)
@@ -316,13 +335,15 @@ class SharedTank:
         idn = message.id.value
         position = message.pos_x.value, message.pos_y.value
         color = Color.from_int(message.color.value)
-        return SharedTank(position, color, idn)
+        client_id = message.client_id.value
+        return SharedTank(position, color, idn, client_id)
     def update_from_message(self, message):
         #self.body.position = message.pos_x.value, message.pos_y.value
         self.body.velocity = message.l_vel_x.value,  message.l_vel_y.value
         #self.body.angle = message.rot.value
         self.body.angular_velocity = message.a_vel.value
         self.barrelSprite.angular_velocity = message.turret_vel.value
+        self.CLIENT_ID = message.client_id.value
         #self.alive = message.alive.value
          
     
@@ -339,6 +360,7 @@ class SharedTank:
         message.turret_rot.value = self.barrelSprite.rotation
         message.turret_vel.value = self.barrelSprite.angular_velocity
         message.alive.value = self.alive
+        message.client_id.value = self.CLIENT_ID
         return message
 
 
@@ -349,9 +371,10 @@ class SharedProjectile:
     class Ammo_Type(IntEnum):
         REGULAR = 1
         AP = 2
-    def __init__(self, pos = (0,0), color=Color.RED, idn=0, src_idn = 0, type=Ammo_Type.REGULAR):
+    def __init__(self, pos = (0,0), color=Color.RED, idn=0, src_idn = 0, client_id = 0, type=Ammo_Type.REGULAR):
         self.idn = idn
         self.src_idn = src_idn
+        self.CLIENT_ID = client_id
         self.color = color
         self.type = type
         self.damage = 10
@@ -381,7 +404,8 @@ class SharedProjectile:
         rotation = message.rot.value
         projectile_type = message.type.value
         color = Color.from_int(message.color.value)
-        return SharedProjectile(position, color, idn, src_id, projectile_type)
+        client_id =  message.client_id.value
+        return SharedProjectile(position, color, idn, src_id, client_id, projectile_type)
 
     def update_from_message(self, message):
         self.body.position = message.pos_x.value, message.pos_y.value
@@ -400,6 +424,42 @@ class SharedProjectile:
         message.l_vel_x.value = self.body.velocity[0]
         message.l_vel_y.value = self.body.velocity[1]
         message.rot.value = self.body.angle
+        message.client_id.value = self.CLIENT_ID
         return message
 
+class Crate:
+    def __init__(self, pos = (0, 0), idn=0, ammo_type = SharedProjectile.Ammo_Type.REGULAR):
+        self.alive = True
+        self.idn = idn
+        self.ammo_type = SharedProjectile.Ammo_Type.REGULAR
+        self.poly = pymunk.Poly.create_box(None, size=(83, 78), radius=0.1)
+        self.poly.collision_type = Coll_Type.CRATE
+        self.poly.idn = self.idn
+        self.moment = pymunk.moment_for_poly(50000, self.poly.get_vertices())
+        self.body = pymunk.Body(50000, self.moment, pymunk.Body.DYNAMIC)
+        self.poly.body = self.body
+        self.body.position = pos
+        space.add(self.poly, self.body)
+    def destroy(self):
+        space.remove(self.poly, self.body)
+        ammo = AmmoPickup(self.body.position, self.idn, self.ammo_type)
+class AmmoPickup:
+    def __init__(self, pos = (0, 0), idn=0, ammo_type = SharedProjectile.Ammo_Type.REGULAR):
+        self.alive = True
+        self.idn = idn
+        self.ammo_type = ammo_type
+        self.poly = pymunk.Poly.create_box(None, size=(83,78), radius=0.1)
+        self.poly.collision_type = Coll_Type.AMMO
+        self.poly.idn = self.idn
+        self.moment = pymunk.moment_for_poly(50000, self.poly.get_vertices())
+        self.body = pymunk.Body(50000, self.moment, pymunk.Body.DYNAMIC)
+        self.poly.body = self.body
+        self.body.position = pos
+        space.add(self.poly, self.body)
+    def destroy(self):
+        space.remove(self.poly, self.body)
 
+
+            
+        
+    

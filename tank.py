@@ -103,7 +103,7 @@ class Tank:
             self.full_bar.draw()
             self.hp_bar.draw()
 
-    def __init__(self, pos = (0, 0), color=Color.RED, idn=0):
+    def __init__(self, pos = (0, 0), color=Color.RED, idn=0, client_id = 0):
         self.alive = True
         self.destroyed = False
         self.burning = False
@@ -117,6 +117,8 @@ class Tank:
         self.rotating = False
         self.moving = False
         self.idn = idn
+        self.CLIENT_ID = client_id
+        print("tank client id", self.CLIENT_ID)
         self.ammo_type = Projectile.Ammo_Type.REGULAR
         self.hp_bar = Tank.HP_Bar(pos)
         images = [
@@ -203,7 +205,6 @@ class Tank:
             
         
     def fire(self, projectile_id):
-        print("fireeee")
         if self.ammo_type == Projectile.Ammo_Type.REGULAR and self.ammo1 <= 0 or self.ammo_type == Projectile.Ammo_Type.AP and self.ammo2 <= 0:
             return
         if self.ammo_type == Projectile.Ammo_Type.REGULAR:
@@ -213,7 +214,7 @@ class Tank:
         posx = self.body.position[0] + (sin(radians(self.barrelSprite.rotation)) * 50)
         posy = self.body.position[1] + (cos(radians(self.barrelSprite.rotation)) * 50)
         global projectile_count
-        p = Projectile(pos=(posx, posy), color=self.color, idn=projectile_id,src_idn=self.idn, type=self.ammo_type)
+        p = Projectile(pos=(posx, posy), color=self.color, idn=projectile_id,src_idn=self.idn, client_id=self.CLIENT_ID, type=self.ammo_type)
         p.body.velocity = (p.velocity*sin(radians(self.barrelSprite.rotation)),p.velocity*cos(radians(self.barrelSprite.rotation)))
         #print(self.barrelSprite.rotation)
         p.body.angle = radians(self.barrelSprite.rotation)
@@ -248,7 +249,6 @@ class Tank:
         clock.schedule_once(smoke, 1)
 
         def reload(self, idn):
-            print("tapos na reload")
             tanks[idn].isReloading = False
         clock.schedule_once(reload, 2, self.idn)
         
@@ -361,7 +361,8 @@ class Tank:
         idn = message.id.value
         position = message.pos_x.value, message.pos_y.value
         color = Color.from_int(message.color.value)
-        return Tank(position, color, idn)
+        client_id = message.client_id.value
+        return Tank(position, color, idn, client_id)
     def update_from_message(self, message):
         #print("client tank v,angle", self.body.velocity, degrees(self.body.angle))
         self.body.position = message.pos_x.value, message.pos_y.value
@@ -403,4 +404,5 @@ class Tank:
         message.turret_rot.value = self.barrelSprite.rotation
         message.turret_vel.value = self.barrelSprite.angular_velocity
         message.alive.value = self.alive
+        message.client_id.value = self.CLIENT_ID
         return message

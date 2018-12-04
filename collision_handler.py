@@ -45,13 +45,16 @@ class Server_Collision_Handler:
             if projectiles.get(projectileShape.idn) is not None:
                 projectile = projectiles[projectileShape.idn]
                 if projectile.src_idn != tank.idn:
+                    server.game_clients_scores.setdefault(projectile.CLIENT_ID, 0)
+                    if tank.alive:
+                        server.game_clients_scores[projectile.CLIENT_ID] += 10
                     projectile.destroy()
                     projectiles.pop(projectile.idn)
                     tank.hit(projectile.damage)
                     msg = TankHit()
                     msg.id.value = tank.idn
                     msg.projectile_id.value = projectile.idn
-                    server.send_reliable_message_to_all(msg)
+                    server.server.send_reliable_message_to_all(msg)
             return True
 
         def beginP(arbiter, space, data):
@@ -62,7 +65,7 @@ class Server_Collision_Handler:
                 projectiles.pop(projectile.idn)
                 msg = ProjectileDestroy()
                 msg.projectile_id.value = projectileShape.idn
-                server.send_reliable_message_to_all(msg)
+                server.server.send_reliable_message_to_all(msg)
             return True
         
         projectile_environment_handler.begin = beginP
