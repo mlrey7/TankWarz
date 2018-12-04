@@ -134,22 +134,7 @@ class Game_Map:
             if (m < 0.66): 
                 return Tile.Type.GRASS
             return Tile.Type.DIRT
-        # def generate_crates(value):
-        #     R = 7
-        #     crates = []
-        #     for xc in range(width):
-        #         for yc in range(height):
-        #             max = 0
-        #             for xn in range(xc-R, xc+R+1):
-        #                 for yn in range(yc-R, yc+R+1):
-        #                     e = value[xn][yn][0]
-        #                     if e > max:
-        #                         max = e
-        #             if value[xc][yc] == max:
-        #                 crates.append((xc,yc))
-        #     return crates
         map = generate_values()
-        #crate_list = generate_crates(map)
         for x in range(width):
             for y in range(height):
                 map[x][y] = Tile(biome(*map[x][y]))

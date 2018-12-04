@@ -118,7 +118,6 @@ class Tank:
         self.moving = False
         self.idn = idn
         self.CLIENT_ID = client_id
-        print("tank client id", self.CLIENT_ID)
         self.ammo_type = Projectile.Ammo_Type.REGULAR
         self.hp_bar = Tank.HP_Bar(pos)
         images = [
@@ -157,36 +156,16 @@ class Tank:
         self.destroyed_img.anchor_y = self.destroyed_img.height // 2 
         self.burning_sprite = None
         
-        # points = [(0,0),(0,58),(24,58),(24,0)]
-        # #self.barrelPoly = pymunk.Poly(None, points, transform=(0,0))
-        # self.barrelPoly = pymunk.Poly.create_box(None, size=(58,24), radius=0.1)
-        # self.barrelMoment = pymunk.moment_for_poly(10.0, self.barrelPoly.get_vertices(), offset=(0,-10))
-        # self.barrelBody = pymunk.Body(10.0, self.barrelMoment, pymunk.Body.DYNAMIC)
-        # self.barrelPoly.sensor = True
-        # self.barrelPoly.body = self.barrelBody
-        # self.barrelBody.position = pos
-        # print("starting barrel pos", self.barrelBody.position)
-        # joint = pymunk.constraint.PinJoint(self.body, self.barrelBody)
-        # joint.collide_bodies = False
         space.add(self.poly, self.body)
-        #space.add(self.barrelPoly, self.barrelBody)
+
 
 
     def update(self, dt):
         if self.alive:
             self.sprite.position = self.body.position
             self.sprite.rotation = degrees(self.body.angle)
-            # self.barrelBody.velocity = 0,0
-            # self.barrelBody.position = self.body.position[0], self.body.position[1]
-            # # self.barrelBody.velocity = 0,0
-            # print(self.barrelBody)
-            # print(self.barrelBody.position)
-            # print(self.barrelSprite.rotation)
-            # print(degrees(self.barrelSprite.angular_velocity) * dt)
             self.barrelSprite.rotation += degrees(self.barrelSprite.angular_velocity) * dt
             self.barrelSprite.position = self.body.position
-            
-            #self.barrelSprite.rotation = degrees(self.barrelBody.angle)
         self.hp_bar.update(self.sprite.position, self.hp)
         if not self.alive and not self.burning:
             burning_images = []
@@ -216,9 +195,7 @@ class Tank:
         global projectile_count
         p = Projectile(pos=(posx, posy), color=self.color, idn=projectile_id,src_idn=self.idn, client_id=self.CLIENT_ID, type=self.ammo_type)
         p.body.velocity = (p.velocity*sin(radians(self.barrelSprite.rotation)),p.velocity*cos(radians(self.barrelSprite.rotation)))
-        #print(self.barrelSprite.rotation)
         p.body.angle = radians(self.barrelSprite.rotation)
-        #print("projectile at start client: ",p.body.angle, "id:", p.idn)
         projectiles[p.idn] = p
         projectile_count+=1
         smoke_img = None
@@ -235,8 +212,6 @@ class Tank:
         smoke_sprite.scale = Tank.SCALE
         smoke_sprite.rotation = self.barrelSprite.rotation
         
-        # Tank.firing_sound.play()
-        # Tank.reloading_sound.play()
         self.isReloading = True
 
         global effect_count
@@ -259,7 +234,7 @@ class Tank:
             self.moving = True
         if self.alive:
             self.body.velocity = (direction*Tank.SPEED*sin(self.body.angle),direction*Tank.SPEED*cos(self.body.angle))
-        #print("client v,angle", self.body.velocity, degrees(self.body.angle))
+
     def stop(self):
         if self.moving and self.alive:
             Tank.sound_player.pause()
@@ -281,17 +256,12 @@ class Tank:
             self.body.angular_velocity = 0
     def rotateTurret(self, direction):
         if self.alive:
-        #self.barrelBody.angular_velocity = Tank.BARREL_SPEED*direction
             self.barrelSprite.angular_velocity = Tank.BARREL_SPEED*direction
     def stopRotateTurret(self):
-        #self.barrelBody.angular_velocity = 0
         self.barrelSprite.angular_velocity = 0
     def destroy(self):
-        #print("DEADBALLZ")
         self.alive = False
         space.remove(self.body)
-        #self.body.body_type = pymunk.b
-        #print("destroyed")
         explosion_images = []
         for i in range(1,11):
             image = pyglet.image.load("res/PNG/Tanks/Flame/Explode/%s.png" % (i))
@@ -330,7 +300,6 @@ class Tank:
     def hit(self, damage):
         self.hp -= damage
         if self.hp <= 0 and self.alive:
-            print("WASAKEN")
             self.body.velocity = 0,0
             self.body.angular_velocity = 0
             self.destroy()
@@ -364,7 +333,6 @@ class Tank:
         client_id = message.client_id.value
         return Tank(position, color, idn, client_id)
     def update_from_message(self, message):
-        #print("client tank v,angle", self.body.velocity, degrees(self.body.angle))
         self.body.position = message.pos_x.value, message.pos_y.value
         self.body.velocity = message.l_vel_x.value,  message.l_vel_y.value
         self.body.angle = message.rot.value
@@ -372,10 +340,6 @@ class Tank:
         self.barrelSprite.position = self.body.position
         self.barrelSprite.rotation = message.turret_rot.value
         self.barrelSprite.angular_velocity = message.turret_vel.value
-        # if message.alive.value == 0:
-        #     self.alive = False
-        # else:
-        #     self.alive = True
         self.alive = message.alive.value
         self.update(1.0/60)
     def get_message_all(self):
@@ -390,7 +354,6 @@ class Tank:
         message.color.value = Color.to_int(self.color)
         message.turret_rot.value = self.barrelSprite.rotation
         message.turret_vel.value = self.barrelSprite.angular_velocity
-        #print("client tank after v,angle", self.body.velocity, degrees(self.body.angle))
     def get_message(self):
         message = shared.TankUpdate()
         message.id.value = self.idn

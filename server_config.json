@@ -1,6 +1,6 @@
 {
 "number_tile_x": 60,
 "number_tile_y": 60,
-"game_length" : 60,
+"game_length" : 120,
 "port" : 27806
 }

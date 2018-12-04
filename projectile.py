@@ -4,12 +4,12 @@ from math import degrees
 from constants import Color
 from constants import Coll_Type
 from constants import Direction
-from global_vars import barrel_batch
 from global_vars import fg_batch
 from global_vars import space
 from global_vars import barrel_group
 from enum import IntEnum
 import shared
+
 class Projectile:
     class Ammo_Type(IntEnum):
         REGULAR = 1
@@ -49,21 +49,10 @@ class Projectile:
     def update(self,dt):
         self.sprite.position = self.body.position
         self.sprite.rotation = degrees(self.body.angle)
-        #print("projectile at update client: ",self.body.angle, "id:", self.idn)
-        #print(self.body.angle)
 
     def destroy(self):
         self.sprite = None
         space.remove(self.poly,self.body)
-
-    # def create_from_message(message):
-    #     idn = message.id.value
-    #     src_id = message.src_id.value
-    #     position = message.pos_x.value, message.pos_y.value
-    #     rotation = message.rot.value
-    #     projectile_type = message.type.value
-    #     color = Color.from_int[message.color.value]
-    #     return Projectile(position, color, idn, src_id)
 
     def update_from_message(self, message):
         self.body.position = message.pos_x.value, message.pos_y.value
