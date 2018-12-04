@@ -14,8 +14,6 @@ class Camera(object):
         self.zoom_level = 1
         self.width  = Game.WIDTH
         self.height = Game.HEIGHT
-        self.zoomed_width  = Game.WIDTH
-        self.zoomed_height = Game.HEIGHT
 
     def init_gl(self, width, height):
         # Set clear color
@@ -38,28 +36,6 @@ class Camera(object):
         """
         self.width, self.height = width, height
         glViewport(0, 0, width, height)
-
-    def on_mouse_scroll(self, x, y, dx, dy):
-        # Get scale factor
-        f = ZOOM_IN_FACTOR if dy > 0 else ZOOM_OUT_FACTOR if dy < 0 else 1
-        # If zoom_level is in the proper range
-        if .2 < self.zoom_level*f < 5:
-
-            self.zoom_level *= f
-
-            mouse_x = x/self.width
-            mouse_y = y/self.height
-
-            mouse_x_in_world = self.left   + mouse_x*self.zoomed_width
-            mouse_y_in_world = self.bottom + mouse_y*self.zoomed_height
-
-            self.zoomed_width  *= f
-            self.zoomed_height *= f
-
-            self.left   = mouse_x_in_world - mouse_x*self.zoomed_width
-            self.right  = mouse_x_in_world + (1 - mouse_x)*self.zoomed_width
-            self.bottom = mouse_y_in_world - mouse_y*self.zoomed_height
-            self.top    = mouse_y_in_world + (1 - mouse_y)*self.zoomed_height
 
     def apply_World(self):
         """ Apply camera transformation.

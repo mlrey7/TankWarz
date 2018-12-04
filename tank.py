@@ -5,6 +5,7 @@ import math
 from math import degrees
 from math import sin
 from math import cos
+from math import radians
 import constants
 
 from projectile import Projectile
@@ -26,6 +27,9 @@ from global_vars import effects
 from global_vars import effect_count
 
 from helper import Rectangle
+from enum import IntEnum
+import shared
+
 
 class Tank:
     SCALE = 0.65
@@ -46,6 +50,41 @@ class Tank:
     sound_player.volume = 0.05
     SPEED = 100
 
+    class Command(IntEnum):
+        NOTHING = 0
+        MOVE_FORWARD = 1
+        MOVE_BACKWARD = 2
+        ROTATE_RIGHT = 3
+        ROTATE_LEFT = 4
+        TURRET_ROTATE_RIGHT = 5
+        TURRET_ROTATE_LEFT = 6
+        STOP_MOVING = 7
+        STOP_ROTATING = 8
+        STOP_ROTATING_TURRET = 9
+        FIRE = 10
+        DESTROY = 11
+        HIT = 12
+        
+        def from_int(c):
+            return Tank.CommandInt[c]
+
+    CommandInt = {
+            0 : Command.NOTHING,
+            1 : Command.MOVE_FORWARD,
+            2 : Command.MOVE_BACKWARD,
+            3 : Command.ROTATE_RIGHT,
+            4 : Command.ROTATE_LEFT,
+            5 : Command.TURRET_ROTATE_RIGHT,
+            6 : Command.TURRET_ROTATE_LEFT,
+            7 : Command.STOP_MOVING,
+            8 : Command.STOP_ROTATING,
+            9 : Command.STOP_ROTATING_TURRET,
+            10 : Command.FIRE,
+            11 : Command.DESTROY,
+            12 : Command.HIT
+            
+            }
+
     class HP_Bar:
         def __init__(self, pos):
             self.border = Rectangle(pos[0] - (54 / 2) - 3,pos[1]+51, 60, 16, (40,40,40,255))
@@ -64,8 +103,10 @@ class Tank:
             self.full_bar.draw()
             self.hp_bar.draw()
 
-    def __init__(self, pos = (0, 0), color=Color.RED, idn=0):
+    def __init__(self, pos = (0, 0), color=Color.RED, idn=0, client_id = 0):
         self.alive = True
+        self.destroyed = False
+        self.burning = False
         self.hp = 100
         self.ammo1 = 40
         self.ammo2 = 5
@@ -76,7 +117,8 @@ class Tank:
         self.rotating = False
         self.moving = False
         self.idn = idn
-        self.ammo_mode = Projectile.Ammo_Type.REGULAR
+        self.CLIENT_ID = client_id
+        self.ammo_type = Projectile.Ammo_Type.REGULAR
         self.hp_bar = Tank.HP_Bar(pos)
         images = [
         pyglet.image.load("res/PNG/tanks/tankSprites/%s/1.png" % (color.value)),
@@ -100,6 +142,7 @@ class Tank:
         barrelImg.anchor_y = (barrelImg.height // 2) - 15
         self.barrelSprite = pyglet.sprite.Sprite(barrelImg, x = pos[0], y = pos[1], batch = fg_batch, group=barrel_group)
         self.barrelSprite.scale = Tank.SCALE 
+        self.barrelSprite.angular_velocity = 0
         self.poly = pymunk.Poly.create_box(None, size=(Tank.HEIGHT,Tank.WIDTH), radius=0.1)
         self.poly.collision_type = Coll_Type.TANK
         self.poly.idn = self.idn
@@ -108,38 +151,51 @@ class Tank:
         self.poly.body = self.body
         self.body.position = pos
 
-        points = [(0,0),(0,58),(24,58),(24,0)]
-        self.barrelPoly = pymunk.Poly(None, points, transform=(0,0))
-        self.barrelMoment = pymunk.moment_for_poly(10, self.barrelPoly.get_vertices(), offset=(0,-10))
-        self.barrelBody = pymunk.Body(1, self.barrelMoment, pymunk.Body.DYNAMIC)
-        self.barrelPoly.body = self.barrelBody
-        self.barrelBody.position = pos
-
+        self.destroyed_img = pyglet.image.load("res/PNG/tanks/Destroyed/%s.png" % color.value)
+        self.destroyed_img.anchor_x = self.destroyed_img.width // 2 
+        self.destroyed_img.anchor_y = self.destroyed_img.height // 2 
+        self.burning_sprite = None
+        
         space.add(self.poly, self.body)
-        space.add(self.barrelPoly, self.barrelBody)
+
+
 
     def update(self, dt):
-        self.sprite.position = self.body.position
-        self.sprite.rotation = degrees(self.body.angle)
-        self.barrelBody.position = self.body.position
-        self.barrelSprite.position = self.barrelBody.position
-        self.barrelSprite.rotation = degrees(self.barrelBody.angle)
+        if self.alive:
+            self.sprite.position = self.body.position
+            self.sprite.rotation = degrees(self.body.angle)
+            self.barrelSprite.rotation += degrees(self.barrelSprite.angular_velocity) * dt
+            self.barrelSprite.position = self.body.position
         self.hp_bar.update(self.sprite.position, self.hp)
+        if not self.alive and not self.burning:
+            burning_images = []
+            for i in range(1,5):
+                image = pyglet.image.load("res/PNG/Tanks/Flame/Loop/%s.png" % (i))
+                burning_images.append(image)
+            for i in range(len(burning_images)):
+                burning_images[i].anchor_x = burning_images[i].width // 2 
+                burning_images[i].anchor_y = burning_images[i].height // 2 
+            burning_anim = pyglet.image.Animation.from_image_sequence(burning_images, 0.16, True)
+            self.burning_sprite = pyglet.sprite.Sprite(burning_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=explosion_group)
+            self.burning_sprite.scale = Tank.SCALE
+            self.sprite.image = self.destroyed_img
+            self.destroyed = True
+            self.burning = True
+            
         
-        
-    def fire(self):
-        if self.ammo_mode == Projectile.Ammo_Type.REGULAR and self.ammo1 <= 0 or self.ammo_mode == Projectile.Ammo_Type.AP and self.ammo2 <= 0:
+    def fire(self, projectile_id):
+        if self.ammo_type == Projectile.Ammo_Type.REGULAR and self.ammo1 <= 0 or self.ammo_type == Projectile.Ammo_Type.AP and self.ammo2 <= 0:
             return
-        if self.ammo_mode == Projectile.Ammo_Type.REGULAR:
+        if self.ammo_type == Projectile.Ammo_Type.REGULAR:
             self.ammo1 -= 1
-        elif self.ammo_mode == Projectile.Ammo_Type.AP:
+        elif self.ammo_type == Projectile.Ammo_Type.AP:
             self.ammo2 -= 1
-        posx = self.barrelBody.position[0] + (sin(self.barrelBody.angle) * 50)
-        posy = self.barrelBody.position[1] + (cos(self.barrelBody.angle) * 50)
+        posx = self.body.position[0] + (sin(radians(self.barrelSprite.rotation)) * 50)
+        posy = self.body.position[1] + (cos(radians(self.barrelSprite.rotation)) * 50)
         global projectile_count
-        p = Projectile(pos=(posx, posy), color=self.color, idn=projectile_count,src_idn=self.idn, type=self.ammo_mode)
-        p.body.velocity = (p.velocity*sin(self.barrelBody.angle),p.velocity*cos(self.barrelBody.angle))
-        p.body.angle = self.barrelBody.angle
+        p = Projectile(pos=(posx, posy), color=self.color, idn=projectile_id,src_idn=self.idn, client_id=self.CLIENT_ID, type=self.ammo_type)
+        p.body.velocity = (p.velocity*sin(radians(self.barrelSprite.rotation)),p.velocity*cos(radians(self.barrelSprite.rotation)))
+        p.body.angle = radians(self.barrelSprite.rotation)
         projectiles[p.idn] = p
         projectile_count+=1
         smoke_img = None
@@ -156,8 +212,6 @@ class Tank:
         smoke_sprite.scale = Tank.SCALE
         smoke_sprite.rotation = self.barrelSprite.rotation
         
-        Tank.firing_sound.play()
-        Tank.reloading_sound.play()
         self.isReloading = True
 
         global effect_count
@@ -174,38 +228,43 @@ class Tank:
         clock.schedule_once(reload, 2, self.idn)
         
     def move(self, direction = Direction.FORWARD):
-        if not self.moving:
+        if not self.moving and self.alive:
             Tank.sound_player.play()
             self.sprite.image = self.anim
             self.moving = True
-        self.body.velocity = (direction*Tank.SPEED*sin(self.body.angle),direction*Tank.SPEED*cos(self.body.angle))
+        if self.alive:
+            self.body.velocity = (direction*Tank.SPEED*sin(self.body.angle),direction*Tank.SPEED*cos(self.body.angle))
+
     def stop(self):
-        if self.moving:
+        if self.moving and self.alive:
             Tank.sound_player.pause()
             self.sprite.image = self.img
             self.moving = False
-        self.body.velocity = (0,0)
+            self.body.velocity = (0,0)
     def rotate(self, direction = Direction.RIGHT):
-        if not self.moving:
+        if not self.moving and self.alive:
             Tank.sound_player.play()
         if not self.rotating:
             self.rotating = True
-        self.body.angular_velocity = 1*direction
+        if self.alive:    
+            self.body.angular_velocity = 1*direction
     def stopRotating(self):
         if not self.moving:
             Tank.sound_player.pause()
         if self.rotating:
             self.rotating = False
-        self.body.angular_velocity = 0
+            self.body.angular_velocity = 0
     def rotateTurret(self, direction):
-        self.barrelBody.angular_velocity = Tank.BARREL_SPEED*direction
+        if self.alive:
+            self.barrelSprite.angular_velocity = Tank.BARREL_SPEED*direction
     def stopRotateTurret(self):
-        self.barrelBody.angular_velocity = 0
+        self.barrelSprite.angular_velocity = 0
     def destroy(self):
         self.alive = False
+        space.remove(self.body)
         explosion_images = []
-        for i in range(1,10):
-            image = pyglet.image.load("res/PNG/Smoke/explosion/explosion%s.png" % (i))
+        for i in range(1,11):
+            image = pyglet.image.load("res/PNG/Tanks/Flame/Explode/%s.png" % (i))
             explosion_images.append(image)
         for i in range(len(explosion_images)):
             explosion_images[i].anchor_x = explosion_images[i].width // 2 
@@ -220,30 +279,93 @@ class Tank:
         explosion_sprite.idn = effect_count
         effects[effect_count] = explosion_sprite
 
+        # burning_images = []
+        # for i in range(1,5):
+        #     image = pyglet.image.load("res/PNG/Tanks/Flame/Loop/%s.png" % (i))
+        #     burning_images.append(image)
+        # for i in range(len(burning_images)):
+        #     burning_images[i].anchor_x = burning_images[i].width // 2 
+        #     burning_images[i].anchor_y = burning_images[i].height // 2 
+        # burning_anim = pyglet.image.Animation.from_image_sequence(burning_images, 0.16, True)
+        
+        # self.burning_sprite = pyglet.sprite.Sprite(burning_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=explosion_group)
+        # self.burning_sprite.scale = Tank.SCALE
+        # self.sprite.image = self.destroyed_img
         def explosion_s(self):
             effects[explosion_sprite.idn].delete()
             effects.pop(explosion_sprite.idn)
+            
         clock.schedule_once(explosion_s, 1)
 
-    def hit(self):
-        hit_images = []
-        for i in range(1,10):
-            image = pyglet.image.load("res/PNG/Tanks/hit/%d.png" % (i))
-            hit_images.append(image)
-        for i in range(len(hit_images)):
-            hit_images[i].anchor_x = hit_images[i].width // 2 
-            hit_images[i].anchor_y = hit_images[i].height // 2 + 5
-        hit_anim = pyglet.image.Animation.from_image_sequence(hit_images, 0.1, False)
-        hit_sprite = pyglet.sprite.Sprite(hit_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=explosion_group)
-        hit_sprite.scale = Tank.SCALE
-        hit_sprite.rotation = self.sprite.rotation
+    def hit(self, damage):
+        self.hp -= damage
+        if self.hp <= 0 and self.alive:
+            self.body.velocity = 0,0
+            self.body.angular_velocity = 0
+            self.destroy()
+        else:
+            hit_images = []
+            for i in range(1,10):
+                image = pyglet.image.load("res/PNG/Tanks/hit/%d.png" % (i))
+                hit_images.append(image)
+            for i in range(len(hit_images)):
+                hit_images[i].anchor_x = hit_images[i].width // 2 
+                hit_images[i].anchor_y = hit_images[i].height // 2 + 5
+            hit_anim = pyglet.image.Animation.from_image_sequence(hit_images, 0.1, False)
+            hit_sprite = pyglet.sprite.Sprite(hit_anim, x = self.sprite.position[0], y = self.sprite.position[1], batch = fg_batch, group=explosion_group)
+            hit_sprite.scale = Tank.SCALE
+            hit_sprite.rotation = self.sprite.rotation
 
-        global effect_count
-        effect_count += 1
-        hit_sprite.idn = effect_count
-        effects[effect_count] = hit_sprite
+            global effect_count
+            effect_count += 1
+            hit_sprite.idn = effect_count
+            effects[effect_count] = hit_sprite
 
-        def hit_s(self):
-            effects[hit_sprite.idn].delete()
-            effects.pop(hit_sprite.idn)
-        clock.schedule_once(hit_s, 1)
+            def hit_s(self):
+                effects[hit_sprite.idn].delete()
+                effects.pop(hit_sprite.idn)
+            clock.schedule_once(hit_s, 1)
+
+    def create_from_message(message):
+        idn = message.id.value
+        position = message.pos_x.value, message.pos_y.value
+        color = Color.from_int(message.color.value)
+        client_id = message.client_id.value
+        return Tank(position, color, idn, client_id)
+    def update_from_message(self, message):
+        self.body.position = message.pos_x.value, message.pos_y.value
+        self.body.velocity = message.l_vel_x.value,  message.l_vel_y.value
+        self.body.angle = message.rot.value
+        self.body.angular_velocity = message.a_vel.value
+        self.barrelSprite.position = self.body.position
+        self.barrelSprite.rotation = message.turret_rot.value
+        self.barrelSprite.angular_velocity = message.turret_vel.value
+        self.alive = message.alive.value
+        self.update(1.0/60)
+    def get_message_all(self):
+        message = shared.TankCreate()
+        message.id.value = self.idn
+        message.rot.value = self.body.angle
+        message.pos_x.value = self.body.position[0]
+        message.pos_y.value = self.body.position[1]
+        message.l_vel_x.value = self.body.velocity[0]
+        message.l_vel_y.value = self.body.velocity[1]
+        message.a_vel.value = self.body.angular_velocity
+        message.color.value = Color.to_int(self.color)
+        message.turret_rot.value = self.barrelSprite.rotation
+        message.turret_vel.value = self.barrelSprite.angular_velocity
+    def get_message(self):
+        message = shared.TankUpdate()
+        message.id.value = self.idn
+        message.rot.value = self.body.angle
+        message.pos_x.value = self.body.position[0]
+        message.pos_y.value = self.body.position[1]
+        message.l_vel_x.value = self.body.velocity[0]
+        message.l_vel_y.value = self.body.velocity[1]
+        message.a_vel.value = self.body.angular_velocity
+        message.color.value = Color.to_int(self.color)
+        message.turret_rot.value = self.barrelSprite.rotation
+        message.turret_vel.value = self.barrelSprite.angular_velocity
+        message.alive.value = self.alive
+        message.client_id.value = self.CLIENT_ID
+        return message

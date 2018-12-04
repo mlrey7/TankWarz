@@ -1,11 +1,13 @@
 import pyglet
 import math
 import random
+import time 
 from opensimplex import OpenSimplex
 from tile import Tile
 from global_vars import bg_batch
 from global_vars import fg_batch
 from global_vars import bg_group
+
 class Game_Map:
     grass_img = pyglet.image.load("res/PNG/Environment/grass_s.png")
     sand_img = pyglet.image.load("res/PNG/Environment/sand_s.png")
@@ -17,32 +19,57 @@ class Game_Map:
     def __init__(self, map_matrix):
         self.map_matrix = map_matrix
         self.sprite_matrix = []
+        #self.crate_list = crate_list
         for x in range(len(self.map_matrix)):
             for y in range(len(self.map_matrix[0])):
                 if self.map_matrix[x][y].tile_type == Tile.Type.GRASS:
                     sprite = pyglet.sprite.Sprite(Game_Map.grass_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.2
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.DIRT:
                     sprite = pyglet.sprite.Sprite(Game_Map.dirt_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite) 
+                    # factor = 0.1
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.SAND:
                     sprite = pyglet.sprite.Sprite(Game_Map.sand_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.0
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.TEMPERATE:
                     sprite = pyglet.sprite.Sprite(Game_Map.temperate_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.15
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.SHRUB:
                     sprite = pyglet.sprite.Sprite(Game_Map.shrub_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.07
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.DARKSAND:
                     sprite = pyglet.sprite.Sprite(Game_Map.darkSand_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
+                    # factor = 0.0
+                    # self.generate_tree(factor)
                 elif self.map_matrix[x][y].tile_type == Tile.Type.WATER:
                     sprite = pyglet.sprite.Sprite(Game_Map.water_img, x = x*Game_Map.grass_img.width, y = y*Game_Map.grass_img.height, batch = bg_batch, group=bg_group)
                     self.sprite_matrix.append(sprite)
-    def generate_map(width, height):
+                    # factor = 0.0
+                    # self.generate_tree(factor)
+
+    def generate_tree(self, factor):
+        threshold = 0.30
+        prob = (random.random() / 4) + factor
+        if prob >= threshold:
+            posx = random.randint(x*Game_Map.grass_img.width, x*Game_Map.grass_img.width + Game_Map.grass_img.width)
+            posy = random.randint(x*Game_Map.grass_img.width, x*Game_Map.grass_img.width + Game_Map.grass_img.width)
+            self.trees.append((posx, posy))
+    def generate_map(width, height, seed_a, seed_b):
         rng1 = random.Random()
+        rng1.seed(seed_a)
         rng2 = random.Random()
+        rng2.seed(seed_b)
         gen1 = OpenSimplex(rng1.randint(0,100000))
         gen2 = OpenSimplex(rng2.randint(0,100000))
         def noise1(nx, ny):
@@ -113,3 +140,9 @@ class Game_Map:
                 map[x][y] = Tile(biome(*map[x][y]))
         return Game_Map(map)
 
+    def create_from_message(message):
+        seed_a = message.seed_a.value
+        seed_b = message.seed_b.value
+        length = message.l.value
+        width = message.w.value
+        return Game_Map.generate_map(length, width, seed_a, seed_b)

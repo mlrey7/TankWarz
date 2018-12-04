@@ -16,6 +16,7 @@ from tank import Tank
 from helper import Rectangle
 from constants import Game
 import global_vars
+
 class Minimap:
     grass_img = pyglet.image.load("res/PNG/Environment/grass_s.png")
     sand_img = pyglet.image.load("res/PNG/Environment/sand_s.png")
@@ -26,7 +27,7 @@ class Minimap:
     darkSand_img = pyglet.image.load("res/PNG/Environment/darksand_s.png")
     SCALE = 0.299999
 
-    def __init__(self, game_map):
+    def __init__(self, game_map, cl_id):
         self.map_matrix = game_map.map_matrix
         self.sprite_matrix = []
         self.tank_list = []
@@ -36,7 +37,7 @@ class Minimap:
         self.factory = (self.size_y * 1.0 / global_vars.full_height) 
         #self.factor = 62500 * 1.0 / 2250000
         SCALE = self.factorx
-
+        self.cl_id = cl_id
         for x in range(len(self.map_matrix)):
             for y in range(len(self.map_matrix[0])):
                 if self.map_matrix[x][y].tile_type == Tile.Type.GRASS:
@@ -90,12 +91,13 @@ class Minimap:
                     self.sprite_matrix.append(sprite)
     def update(self):
         for tank in tanks.values():
-            rect = Rectangle(10 + (tank.sprite.position[0] * self.factorx), 10 + (tank.sprite.position[1]* self.factory), 5, 5, (255,0,0,255))
-            rect.draw()
+            if tank.alive:
+                rect = Rectangle(10 + (tank.sprite.position[0] * self.factorx), 10 + (tank.sprite.position[1]* self.factory), 5, 5, (255,0,0,255))
+                rect.draw()
         for projectile in projectiles.values():
-            rect = Rectangle(10 + (projectile.sprite.position[0] * self.factorx), 10 + (projectile.sprite.position[1]* self.factory), 4, 6, (40,40,40,255))
+            rect = Rectangle(10 + (projectile.sprite.position[0] * self.factorx), 10 + (projectile.sprite.position[1]* self.factory), 4, 4, (40,40,40,255))
             rect.draw()
-        tank = tanks[0]
+        tank = tanks[self.cl_id]
         area_w =  Game.WIDTH * self.factorx
         area_h =  Game.HEIGHT * self.factory
         area_x = 10 + (tank.sprite.position[0] * self.factorx) - (area_w/ 2)
