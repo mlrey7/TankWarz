@@ -239,8 +239,9 @@ class SharedTank:
         #space.add(self.barrelPoly, self.barrelBody)
     
     def update(self, dt):
-        self.barrelSprite.position = self.body.position
-        self.barrelSprite.rotation += degrees(self.barrelSprite.angular_velocity) * dt
+        if self.alive:
+            self.barrelSprite.position = self.body.position
+            self.barrelSprite.rotation += degrees(self.barrelSprite.angular_velocity) * dt
 
     def fire(self, projectile_id):
         if self.ammo_type == SharedProjectile.Ammo_Type.REGULAR and self.ammo1 <= 0 or self.ammo_type == SharedProjectile.Ammo_Type.AP and self.ammo2 <= 0:
@@ -298,6 +299,8 @@ class SharedTank:
         self.barrelSprite.angular_velocity = 0
     def destroy(self):
         self.alive = False
+        space.remove(self.body)
+        #self.body.body_type = pymunk.Body.STATIC
         pass
 
     def hit(self, damage):

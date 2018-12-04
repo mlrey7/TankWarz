@@ -36,16 +36,17 @@ import collision_handler
 from pyglet.gl import Config
 
 
+pyglet.font.add_file("res/fonts/camouflagew.ttf")
 class TitleLabel(glooey.Label):
-    custom_font_name = 'Arial'
-    custom_font_size = 50
+    custom_font_name = 'Camouflage Woodland'
+    custom_font_size = 60
     custom_color = '#ffffff'
     custom_alignment = 'center'
 class TitleScreen_Grid(glooey.VBox):
     custom_alignment = 'fill'
 class TitleScreen_Button(glooey.Button):
     class Label(glooey.Label):
-        custom_font_name = 'Arial'
+        custom_font_name = 'Camouflage Woodland'
         custom_font_size = 25
         custom_color = '#ffffff'
         custom_alignment = 'center'
@@ -58,7 +59,14 @@ class Start_Button(TitleScreen_Button):
         print("wubba lubba dub dub")
         self.client.connect(host)
         #self.root.remove(self.root)
-        
+class Start_New_Button(TitleScreen_Button):
+    def __init__(self, text, client):
+        super().__init__(text)
+        self.client = client
+        #self.vbox = vbox
+    def on_click(self, widget):
+        pass
+        #self.client.connect(host)     
         
 #     class Base(glooey.Image):
 #         custom_image = pyglet.resource.image('base.png')
@@ -66,6 +74,31 @@ class Start_Button(TitleScreen_Button):
 #         custom_image = pyglet.resource.image('over.png')
 #     class Down(glooey.Image):
 #         custom_image = pyglet.resource.image('down.png')
+
+stack = glooey.Stack()
+stack.custom_alignment = 'fill'
+bg = glooey.Image(pyglet.image.load("res/PNG/GUI/bg.png"))
+overlay = glooey.Image(pyglet.image.load("res/PNG/GUI/overlay.png"))
+tank_overlay = glooey.Image(pyglet.image.load("res/PNG/GUI/tank.png"))
+overlay.custom_alignment = 'fill'
+tank_overlay.custom_alignment = 'fill'
+bg.custom_alignment = 'fill'
+stack.add(bg)
+stack.add(overlay)
+stack.add(tank_overlay)
+board = glooey.Board()
+board.custom_alignment = 'fill'
+
+vbox = TitleScreen_Grid()
+vbox.alignment = 'center'
+#vbox.right_padding = 150
+title = TitleLabel("TANK WARZ")
+vbox.add(title)
+#vbox.custom_right_padding = 20
+stack.add(vbox)
+
+
+
 class Main_Window2(pyglet.window.Window):
     def __init__(self, width, height):
         conf = Config(sample_buffers=1,
@@ -73,37 +106,24 @@ class Main_Window2(pyglet.window.Window):
                       depth_size=16,
                       double_buffer=True)
         super(Main_Window2, self).__init__(Game.WIDTH, Game.HEIGHT, config=conf)
-        self.cl_id = int(time.time())
+        #self.cl_id = int(time.time())
         
         #self.client.connect(host)
         self.push_handlers(keys)
 
         self.gui = glooey.Gui(self, gui_batch)
-        stack = glooey.Stack()
-        stack.custom_alignment = 'fill'
-        self.client = Game_Client2(width, height, self.cl_id, self.gui, stack)
         
-        bg = glooey.Image(pyglet.image.load("res/PNG/GUI/Menu.png"))
+        self.client = Game_Client2(width, height, self.gui, stack)
+        start_button = Start_Button("PLAY", self.client)
+        vbox.add(start_button)
+        exit_button = TitleScreen_Button("EXIT")
+        vbox.add(exit_button)
         #self.bg_image = pyglet.image.load("res/PNG/GUI/Menu.png")
         #self.bg_sprite = pyglet.image.Sprite(self.bg_image, 0, 0, gui_batch)
-        bg.custom_alignment = 'fill'
-        stack.add(bg)
-        board = glooey.Board()
-        board.custom_alignment = 'fill'
         
-        vbox = TitleScreen_Grid()
-        vbox.alignment = 'right'
-        vbox.right_padding = 150
-        title = TitleLabel("TANK WARZ")
-        vbox.add(title)
-        #vbox.custom_right_padding = 20
-        stack.add(vbox)
         #board.add(vbox, (853, 350))
         self.gui.add(stack)
-        start_button = Start_Button("START", self.client)
-        exit_button = TitleScreen_Button("EXIT")
-        vbox.add(start_button)
-        vbox.add(exit_button)
+        
         #start_button.push_handlers(self.on_click_start)
         self.ping = pyglet.text.HTMLLabel(
             '<font face="Arial" size="13" color="white"><b>latency: %3.3f ms fps:%3.3f</b></font>' % (self.client._client.latency, pyglet.clock.get_fps()),
@@ -164,7 +184,7 @@ class Main_Window2(pyglet.window.Window):
             self.client.fire()
 
 class Game_Client2:
-    def __init__(self, width, height, cl_id, gui, stack):
+    def __init__(self, width, height, gui, stack):
         self.running = False
         self.started = False
         self.connected = False
@@ -186,7 +206,7 @@ class Game_Client2:
         self.hud = None
         self.camera = None
 
-        self.cl_id = cl_id
+        self.cl_id = int(time.time())
         self.gui = gui
         self.stack = stack
         self._client = legume.Client()
@@ -199,6 +219,8 @@ class Game_Client2:
         self.update_timer = time.time()
 
     def on_connect_accepted(self,sender, args):
+        # if self.running == False:
+        #     self.cl_id = int(time.time())
         self.connected = True
         print("Connection Accepted")
         if not self.started:
@@ -425,18 +447,29 @@ class Game_Client2:
             if projectile is not None:
                 tank.hit(projectile.damage)
                 print(self.tank.alive)
-                if tank.idn == self.tank.idn and not self.tank.alive:
-                    print("Game Over")
-                    bg = glooey.Background()
-                    bg.image = pyglet.image.load("res/PNG/GUI/overlay.png")
-                    bg.custom_alignment = 'fill'
-                    self.gui.add(bg)
-                    vbox = TitleScreen_Grid()
+                if tank.idn == self.tank.idn and not self.tank.alive and not self.tank.destroyed:
+                    self.tank.destroyed = True
+                    print("Game Over SCREEN")
+                    game_over_bg = glooey.Background()
+                    game_over_bg.image = pyglet.image.load("res/PNG/GUI/overlay.png")
+                    game_over_bg.custom_alignment = 'fill'
+                    self.gui.add(game_over_bg)
+                    game_over_vbox = TitleScreen_Grid()
                     game_over_label = TitleLabel("Game Over!")
-                    retry_button = TitleScreen_Button('Retry')
-                    vbox.add(game_over_label)
-                    vbox.add(retry_button)
-                    self.gui.add(vbox)
+                    retry_button = TitleScreen_Button('Play New Game')
+                    def on_click(widget):
+                        self.gui.remove(game_over_bg)
+                        self.gui.remove(game_over_vbox)
+                        self.gui.add(stack)
+                        self._client.disconnect()
+                        self.cl_id = int(time.time())
+                        self.started = False
+                        self.running = False
+                        #self.client.connect(host)
+                    retry_button.on_click = on_click
+                    game_over_vbox.add(game_over_label)
+                    game_over_vbox.add(retry_button)
+                    self.gui.add(game_over_vbox)
                 projectile.destroy()
                 projectiles.pop(projectile.idn)
 

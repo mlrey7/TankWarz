@@ -106,6 +106,7 @@ class Tank:
     def __init__(self, pos = (0, 0), color=Color.RED, idn=0):
         self.alive = True
         self.destroyed = False
+        self.burning = False
         self.hp = 100
         self.ammo1 = 40
         self.ammo2 = 5
@@ -170,21 +171,22 @@ class Tank:
 
 
     def update(self, dt):
-        self.sprite.position = self.body.position
-        self.sprite.rotation = degrees(self.body.angle)
-        # self.barrelBody.velocity = 0,0
-        # self.barrelBody.position = self.body.position[0], self.body.position[1]
-        # # self.barrelBody.velocity = 0,0
-        # print(self.barrelBody)
-        # print(self.barrelBody.position)
-        # print(self.barrelSprite.rotation)
-        # print(degrees(self.barrelSprite.angular_velocity) * dt)
-        self.barrelSprite.rotation += degrees(self.barrelSprite.angular_velocity) * dt
-        self.barrelSprite.position = self.body.position
-        
-        #self.barrelSprite.rotation = degrees(self.barrelBody.angle)
+        if self.alive:
+            self.sprite.position = self.body.position
+            self.sprite.rotation = degrees(self.body.angle)
+            # self.barrelBody.velocity = 0,0
+            # self.barrelBody.position = self.body.position[0], self.body.position[1]
+            # # self.barrelBody.velocity = 0,0
+            # print(self.barrelBody)
+            # print(self.barrelBody.position)
+            # print(self.barrelSprite.rotation)
+            # print(degrees(self.barrelSprite.angular_velocity) * dt)
+            self.barrelSprite.rotation += degrees(self.barrelSprite.angular_velocity) * dt
+            self.barrelSprite.position = self.body.position
+            
+            #self.barrelSprite.rotation = degrees(self.barrelBody.angle)
         self.hp_bar.update(self.sprite.position, self.hp)
-        if not self.alive and not self.destroyed:
+        if not self.alive and not self.burning:
             burning_images = []
             for i in range(1,5):
                 image = pyglet.image.load("res/PNG/Tanks/Flame/Loop/%s.png" % (i))
@@ -197,6 +199,7 @@ class Tank:
             self.burning_sprite.scale = Tank.SCALE
             self.sprite.image = self.destroyed_img
             self.destroyed = True
+            self.burning = True
             
         
     def fire(self, projectile_id):
@@ -286,6 +289,8 @@ class Tank:
     def destroy(self):
         #print("DEADBALLZ")
         self.alive = False
+        space.remove(self.body)
+        #self.body.body_type = pymunk.b
         #print("destroyed")
         explosion_images = []
         for i in range(1,11):
@@ -325,6 +330,7 @@ class Tank:
     def hit(self, damage):
         self.hp -= damage
         if self.hp <= 0 and self.alive:
+            print("WASAKEN")
             self.body.velocity = 0,0
             self.body.angular_velocity = 0
             self.destroy()
@@ -365,6 +371,10 @@ class Tank:
         self.barrelSprite.position = self.body.position
         self.barrelSprite.rotation = message.turret_rot.value
         self.barrelSprite.angular_velocity = message.turret_vel.value
+        # if message.alive.value == 0:
+        #     self.alive = False
+        # else:
+        #     self.alive = True
         self.alive = message.alive.value
         self.update(1.0/60)
     def get_message_all(self):
