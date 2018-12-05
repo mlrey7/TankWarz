@@ -32,4 +32,4 @@ Every time you get hit an opponent you get points. If a tank goes down below 0 H
 - Lennox Nioko
 - Matthew Rey
 
-[banner]:https://github.com/accelthreat/TankWarz/master/res/PNG/GUI/title_menu.png
+[banner]:https://github.com/accelthreat/TankWarz/blob/master/res/PNG/GUI/title%20menu.png
