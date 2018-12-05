@@ -143,9 +143,6 @@ class Game_Server:
         self.logger.info('Listening on port %d' % PORT)
 
         while True:
-            # Physics stuff
-            # self.update()
-            # Network stuff
             if time.time() > self.update_timer + UPDATE_RATE:
                 self._send_update()
                 self.update_timer = time.time()
