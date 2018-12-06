@@ -161,3 +161,37 @@
 2018-12-04 23:45:24,583 INFO Connected to: <legume.serverpeer.Peer object at 0x03D14510>
 2018-12-04 23:45:25,691 INFO A server Tank has been created
 2018-12-04 23:45:39,863 INFO A server Tank has been created
+2018-12-06 18:01:19,219 INFO Server Initialized
+2018-12-06 18:01:19,249 INFO Listening on port 27806
+2018-12-06 18:01:58,490 INFO Server Initialized
+2018-12-06 18:01:58,492 INFO Listening on port 27806
+2018-12-06 18:07:24,787 INFO Server Initialized
+2018-12-06 18:07:24,790 INFO Listening on port 27806
+2018-12-06 18:07:29,729 INFO Connected to: <legume.serverpeer.Peer object at 0x034B8C50>
+2018-12-06 18:07:30,435 INFO A server Tank has been created
+2018-12-06 18:08:15,001 INFO Connected to: <legume.serverpeer.Peer object at 0x034B8C30>
+2018-12-06 18:08:15,979 INFO A server Tank has been created
+2018-12-06 18:08:39,987 INFO Connected to: <legume.serverpeer.Peer object at 0x034B8750>
+2018-12-06 18:08:40,882 INFO A server Tank has been created
+2018-12-06 18:09:06,713 INFO Connected to: <legume.serverpeer.Peer object at 0x0348EC30>
+2018-12-06 18:09:07,661 INFO A server Tank has been created
+2018-12-06 18:09:27,371 INFO Connected to: <legume.serverpeer.Peer object at 0x03504F50>
+2018-12-06 18:09:28,424 INFO A server Tank has been created
+2018-12-06 18:09:28,740 INFO A server Tank has been created
+2018-12-06 18:09:29,058 INFO A server Tank has been created
+2018-12-06 18:19:07,458 INFO Server Initialized
+2018-12-06 18:19:07,460 INFO Listening on port 27806
+2018-12-06 18:24:28,004 INFO Connected to: <legume.serverpeer.Peer object at 0x03A98BB0>
+2018-12-06 18:24:28,751 INFO A server Tank has been created
+2018-12-06 18:24:32,283 INFO Connected to: <legume.serverpeer.Peer object at 0x03A98F30>
+2018-12-06 18:24:32,978 INFO A server Tank has been created
+2018-12-06 18:25:15,902 INFO Connected to: <legume.serverpeer.Peer object at 0x03AB0730>
+2018-12-06 18:25:16,691 INFO A server Tank has been created
+2018-12-06 18:25:58,969 INFO Connected to: <legume.serverpeer.Peer object at 0x03AB0F70>
+2018-12-06 18:25:59,776 INFO A server Tank has been created
+2018-12-06 18:42:02,859 INFO Server Initialized
+2018-12-06 18:42:02,861 INFO Listening on port 27806
+2018-12-06 18:42:07,923 INFO Connected to: <legume.serverpeer.Peer object at 0x03F2C0F0>
+2018-12-06 18:42:08,630 INFO A server Tank has been created
+2018-12-06 18:49:44,376 INFO Server Initialized
+2018-12-06 18:49:44,388 INFO Listening on port 27806
