@@ -2,5 +2,5 @@
 "number_tile_x": 60,
 "number_tile_y": 60,
 "port" : 27806,
-"host" : "192.168.254.104"
+"host" : "192.168.0.100"
 }

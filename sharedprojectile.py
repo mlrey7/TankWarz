@@ -42,7 +42,7 @@ class SharedProjectile:
         self.damage = 10
         self.velocity = 1000
         if self.type == SharedProjectile.Ammo_Type.AP:
-            self.damage = 100
+            self.damage = 34
             self.velocity = 1500
         self.poly = pymunk.Poly.create_box(None, size=(SharedProjectile.HEIGHT,SharedProjectile.WIDTH))
         self.poly.collision_type = Coll_Type.PROJECTILE
